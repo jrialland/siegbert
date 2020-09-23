@@ -17,8 +17,7 @@ namespace siegbert {
 
 struct Move {
 
-  public:
-
+public:
   Move();
 
   square_t from;
@@ -39,7 +38,7 @@ struct Move {
 std::ostream &operator<<(std::ostream &os, const Move &move);
 
 struct Castling {
-  public:
+public:
   Castling();
   bool kingside;
   bool queenside;
@@ -78,11 +77,10 @@ struct StateUpdateResult {
 };
 
 class State {
-  private:
-
+private:
   void remove_from_piece_list(square_t square);
 
-  public:
+public:
   State();
   uint64_t presence;
   uint64_t pawns;
@@ -95,7 +93,7 @@ class State {
 
   void enplace(char piece, square_t square);
 
-  uint64_t compute_attack(const State& opponent, bool im_white) const;
+  uint64_t compute_attack(const State &opponent, bool im_white) const;
 
   void move_piece(char piece, square_t from, square_t to);
 
@@ -105,28 +103,22 @@ class State {
 
   char piece_at(square_t square) const;
 
-  void update_for_capture(const Move& move, bool white);
+  void update_for_capture(const Move &move, bool white);
 
-  void update_for_move(const Move& move, bool white, StateUpdateResult& result);
-
+  void update_for_move(const Move &move, bool white, StateUpdateResult &result);
 };
 
 struct BoardState {
 
 private:
-
   BoardState();
 
-  void evolve_z(
-    const Move& move,
-     const Castling& previous_castling,
-      int previous_halfmoves,
-      uint64_t previous_enpassant);
+  void evolve_z(const Move &move, const Castling &previous_castling,
+                int previous_halfmoves, uint64_t previous_enpassant);
 
   void recompute_z();
 
 public:
-
   uint64_t z; /* zobrist hash */
   uint64_t enpassant;
   Castling white_castling;
@@ -136,7 +128,6 @@ public:
   State white;
   State black;
   bool white_to_move;
-
 
   static BoardState initial();
 
@@ -179,5 +170,5 @@ std::ostream &operator<<(std::ostream &os, const BoardState &boardstate);
 
 uint8_t square_for_bboard(uint64_t l);
 
-}
+} // namespace siegbert
 #endif

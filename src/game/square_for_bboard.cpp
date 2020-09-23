@@ -29,4 +29,4 @@ uint8_t square_for_bboard(uint64_t l) {
 #endif
 }
 
-}
+} // namespace siegbert

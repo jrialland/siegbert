@@ -268,7 +268,6 @@ static const uint64_t zobrist_random64[781] = {
 
 namespace siegbert {
 
-
 static inline int piece_value(char piece) {
   switch (piece) {
   case 'p':
@@ -286,7 +285,6 @@ static inline int piece_value(char piece) {
   }
   return -1;
 }
-
 
 void BoardState::recompute_z() {
   uint64_t p = 0;
@@ -327,9 +325,8 @@ void BoardState::recompute_z() {
   z = p ^ c ^ e ^ t;
 }
 
-void BoardState::evolve_z(const Move& move, const Castling& previous_castling,
- int previous_halfmoves,
-      uint64_t previous_enpassant) {
+void BoardState::evolve_z(const Move &move, const Castling &previous_castling,
+                          int previous_halfmoves, uint64_t previous_enpassant) {
 
   int valoffset = white_to_move ? 0 : 1;
 
@@ -355,7 +352,7 @@ void BoardState::evolve_z(const Move& move, const Castling& previous_castling,
       int capture_row = white_to_move ? 3 : 4;
       int capture_col = COL(move.to);
       z ^= zobrist_random64[64 * (piece_value('p') + nvaloffset) +
-                                        capture_row * 8 + capture_col];
+                            capture_row * 8 + capture_col];
     } else {
       int cap_value = piece_value(move.captured) + nvaloffset;
       z ^= zobrist_random64[64 * cap_value + OFFSET(move.to)];
@@ -363,19 +360,16 @@ void BoardState::evolve_z(const Move& move, const Castling& previous_castling,
   }
 
   // normal move : disappear from board
-  z ^=
-      zobrist_random64[64 * (piece_value(move.piece) + valoffset) +
-                       OFFSET(move.from)];
+  z ^= zobrist_random64[64 * (piece_value(move.piece) + valoffset) +
+                        OFFSET(move.from)];
 
   // reappear
   if (move.promotion) {
-    z ^=
-        zobrist_random64[64 * (piece_value(move.promotion) + valoffset) +
-                         OFFSET(move.to)];
+    z ^= zobrist_random64[64 * (piece_value(move.promotion) + valoffset) +
+                          OFFSET(move.to)];
   } else {
-    z ^=
-        zobrist_random64[64 * (piece_value(move.piece) + valoffset) +
-                         OFFSET(move.to)];
+    z ^= zobrist_random64[64 * (piece_value(move.piece) + valoffset) +
+                          OFFSET(move.to)];
   }
 
   // castling
@@ -399,17 +393,14 @@ void BoardState::evolve_z(const Move& move, const Castling& previous_castling,
    * to revert the hash (if it was zero, z remains unchanged)
    */
   if (previous_enpassant) {
-    z ^=
-        zobrist_random64[772 +
-                         COL(square_for_bboard(previous_enpassant))];
+    z ^= zobrist_random64[772 + COL(square_for_bboard(previous_enpassant))];
   }
 
   /*
    * enpassant : xor with the new enpassant value
    */
   if (enpassant) {
-    z ^=
-        zobrist_random64[772 + COL(square_for_bboard(enpassant))];
+    z ^= zobrist_random64[772 + COL(square_for_bboard(enpassant))];
   }
 
   /* turn : white becomes black (even xor count leads to 0)
@@ -418,4 +409,4 @@ void BoardState::evolve_z(const Move& move, const Castling& previous_castling,
   z ^= zobrist_random64[780];
 }
 
-}
+} // namespace siegbert

@@ -1,10 +1,10 @@
 
 #include <libpopcnt.h>
 
-#include <vector>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <vector>
 using namespace std;
 
 #include <boost/algorithm/string.hpp>
@@ -16,35 +16,18 @@ namespace siegbert {
 
 const string abcdefgh = "abcdefgh";
 
-Castling::Castling() : kingside(false), queenside(false) {
-}
+Castling::Castling() : kingside(false), queenside(false) {}
 
-Piece::Piece() :
-  name('\0'),
-  square(0)
-{}
+Piece::Piece() : name('\0'), square(0) {}
 
-State::State() :
-  presence(0),
-  pawns(0),
-  rooks(0),
-  knights(0),
-  bishops(0),
-  king(0),
-  npieces(0)
-{}
+State::State()
+    : presence(0), pawns(0), rooks(0), knights(0), bishops(0), king(0),
+      npieces(0) {}
 
-Move::Move() : 
-  from(0),
-  to(0),
-  piece(0),
-  captured(0),
-  promotion(0),
-  enpassant(0),
-  kingside_castling(false),
-  queenside_castling(false),
-  pawn_jumstart(false)
-{}
+Move::Move()
+    : from(0), to(0), piece(0), captured(0), promotion(0), enpassant(0),
+      kingside_castling(false), queenside_castling(false),
+      pawn_jumstart(false) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 std::string Move::to_str() const {
@@ -130,11 +113,11 @@ string State::to_str() const {
   int i = 0;
   for (int row = 7; row >= 0; row -= 1) {
     if (row < 7) {
-      s+= '\n';
+      s += '\n';
     }
     for (int col = 0; col < 8; col += 1) {
       char p = piece_at(SQUARE(row, col));
-      s+= p ? p : '.';
+      s += p ? p : '.';
     }
   }
   return s;
@@ -185,7 +168,7 @@ void State::remove_from_piece_list(square_t square) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-uint64_t State::compute_attack(const State& opponent, bool im_white) const {
+uint64_t State::compute_attack(const State &opponent, bool im_white) const {
 
 #define RAY_ATTACK(ray)                                                        \
   do {                                                                         \
@@ -199,7 +182,6 @@ uint64_t State::compute_attack(const State& opponent, bool im_white) const {
     }                                                                          \
   } while (0)
 
-
   const uint64_t occupied = presence | opponent.presence;
   uint64_t a = 0;
   const Piece *p = pieces;
@@ -208,8 +190,7 @@ uint64_t State::compute_attack(const State& opponent, bool im_white) const {
     uint8_t offset = OFFSET(p->square);
     switch (p->name) {
     case 'p':
-      a = a | (im_white ? WHITE_PAWN_CAPTURES
-                                 : BLACK_PAWN_CAPTURES)[offset];
+      a = a | (im_white ? WHITE_PAWN_CAPTURES : BLACK_PAWN_CAPTURES)[offset];
       break;
     case 'n':
       a = a | KNIGHT_CAPTURES[offset];
@@ -289,7 +270,7 @@ void State::remove_piece(square_t square) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void State::update_for_capture(const Move& move, bool white) {
+void State::update_for_capture(const Move &move, bool white) {
   if (move.enpassant) {
     int col = COL(move.to);
     int capture_row = white ? ROW(move.to) + 1 : ROW(move.to) - 1;
@@ -304,16 +285,15 @@ void State::update_for_capture(const Move& move, bool white) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void State::update_for_move(const Move& move, bool white, StateUpdateResult& result) {
+void State::update_for_move(const Move &move, bool white,
+                            StateUpdateResult &result) {
   /* move the rooks when castling */
   if (move.kingside_castling) {
     const int castling_row = white ? 0 : 7;
-    move_piece('r', SQUARE(castling_row, 7),
-                     SQUARE(castling_row, 5));
+    move_piece('r', SQUARE(castling_row, 7), SQUARE(castling_row, 5));
   } else if (move.queenside_castling) {
     const int castling_row = white ? 0 : 7;
-    move_piece('r', SQUARE(castling_row, 0),
-                     SQUARE(castling_row, 3));
+    move_piece('r', SQUARE(castling_row, 0), SQUARE(castling_row, 3));
   }
 
   /* update castling rights */
@@ -334,10 +314,10 @@ void State::update_for_move(const Move& move, bool white, StateUpdateResult& res
 
   /* move the piece */
   if (move.promotion) {
-    remove_piece( move.from);
-    enplace( move.promotion, move.to);
+    remove_piece(move.from);
+    enplace(move.promotion, move.to);
   } else {
-    move_piece( move.piece, move.from, move.to);
+    move_piece(move.piece, move.from, move.to);
   }
 
   /* set enpassant if applicable */
@@ -348,13 +328,8 @@ void State::update_for_move(const Move& move, bool white, StateUpdateResult& res
   }
 }
 
-BoardState::BoardState() :
-  z(0),
-  enpassant(0),
-  halfmoves(0),
-  moves(0),
-  white_to_move(0)
-{}
+BoardState::BoardState()
+    : z(0), enpassant(0), halfmoves(0), moves(0), white_to_move(0) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 BoardState BoardState::initial() {
@@ -365,13 +340,13 @@ BoardState BoardState::initial() {
 BoardState BoardState::from_fen(const std::string &fen) {
   BoardState self;
   vector<string> items;
-  State* current;
+  State *current;
 
   boost::split(items, fen, boost::is_space());
-  if(items.size() != 6) {
+  if (items.size() != 6) {
     throw std::invalid_argument("invalid fen");
   }
-  
+
   /* positions */
   string positions = items.at(0);
   int row = 7;
@@ -404,9 +379,9 @@ BoardState BoardState::from_fen(const std::string &fen) {
   /* castlings */
   string castlings = items[2];
   self.white_castling.kingside = castlings.find('K') != string::npos;
-  self.white_castling.queenside = castlings.find( 'Q') != string::npos;
-  self.black_castling.kingside = castlings.find( 'k') != string::npos;
-  self.black_castling.queenside = castlings.find( 'q') != string::npos;
+  self.white_castling.queenside = castlings.find('Q') != string::npos;
+  self.black_castling.kingside = castlings.find('k') != string::npos;
+  self.black_castling.queenside = castlings.find('q') != string::npos;
 
   /* enpassant */
   string enpassant = items[3];
@@ -455,7 +430,7 @@ std::string BoardState::to_fen() const {
 
   /* current player */
   fen += ' ';
-  fen+= white_to_move ? 'w' : 'b';
+  fen += white_to_move ? 'w' : 'b';
 
   /* castlings */
   fen += ' ';
@@ -485,14 +460,14 @@ std::string BoardState::to_fen() const {
   if (enpassant) {
     square_t e = square_for_bboard(enpassant);
     fen += abcdefgh[COL(e)];
-    fen += std::to_string( 1 + ROW(e));
+    fen += std::to_string(1 + ROW(e));
   } else {
     fen += '-';
   }
 
   /* half moves */
   fen += std::to_string(halfmoves);
-  
+
   /* moves */
   fen += std::to_string(moves);
 
@@ -526,11 +501,8 @@ char BoardState::piece_at(square_t square) const {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-StateUpdateResult::StateUpdateResult(const Castling &castling) 
-  : castling_rights(castling),
-    enpassant(0)
-{
-}
+StateUpdateResult::StateUpdateResult(const Castling &castling)
+    : castling_rights(castling), enpassant(0) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 bool BoardState::make_move(const Move &move) {
@@ -572,7 +544,7 @@ bool BoardState::make_move(const Move &move) {
     white = saved_white;
     black = saved_black;
     return false;
-  
+
   } else {
 
     Castling previous_castling;
@@ -648,10 +620,10 @@ void BoardState::unmake_move(const Move &move, const Memento &memento) {
 
   if (move.kingside_castling) {
     int row = hasplayed == &white ? 0 : 7;
-    hasplayed->move_piece( 'r', SQUARE(row, 5), SQUARE(row, 7));
+    hasplayed->move_piece('r', SQUARE(row, 5), SQUARE(row, 7));
   } else if (move.queenside_castling) {
     int row = hasplayed == &white ? 0 : 7;
-    hasplayed->move_piece( 'r', SQUARE(row, 3), SQUARE(row, 0));
+    hasplayed->move_piece('r', SQUARE(row, 3), SQUARE(row, 0));
   }
 
   if (white_to_move) {
@@ -681,7 +653,7 @@ uint64_t BoardState::get_enpassant() const { return enpassant; }
 
 ////////////////////////////////////////////////////////////////////////////////
 bool BoardState::is_check() const {
-  if(white_to_move) {
+  if (white_to_move) {
     uint64_t attacked = black.compute_attack(white, false);
     return white.king & attacked;
   } else {
@@ -695,15 +667,13 @@ PiecesCount BoardState::count_pieces() const {
   PiecesCount pc;
   pc.white_knights = popcnt64(white.knights);
   pc.white_pawns = popcnt64(white.pawns);
-  pc.white_queens =
-      popcnt64(white.rooks & white.bishops);
+  pc.white_queens = popcnt64(white.rooks & white.bishops);
   pc.white_rooks = popcnt64(white.rooks) - pc.white_queens;
   pc.white_bishops = popcnt64(white.knights) - pc.white_queens;
 
   pc.black_knights = popcnt64(black.knights);
   pc.black_pawns = popcnt64(black.pawns);
-  pc.black_queens =
-      popcnt64(black.rooks & black.bishops);
+  pc.black_queens = popcnt64(black.rooks & black.bishops);
   pc.black_rooks = popcnt64(black.rooks) - pc.black_queens;
   pc.black_bishops = popcnt64(black.knights) - pc.black_queens;
   return pc;
@@ -718,7 +688,6 @@ std::ostream &operator<<(std::ostream &os, const BoardState &boardstate) {
   return os;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 std::vector<Move> BoardState::generate_moves() const {
 
@@ -728,15 +697,15 @@ std::vector<Move> BoardState::generate_moves() const {
     while (ray->bboard) {                                                      \
       if (ray->bboard & moving->presence)                                      \
         break;                                                                 \
-      Move move;                                       \
-      move.piece = piece_name;                                                \
-      move.from = p->square;                                                  \
-      move.to = ray->square;                                                  \
-      move.captured = ray->bboard & opponent_capturable                       \
-                           ? opponent->piece_at(move.to)                \
-                           : '\0';                                             \
-      moves.push_back(move);\
-      if (move.captured)                                                      \
+      Move move;                                                               \
+      move.piece = piece_name;                                                 \
+      move.from = p->square;                                                   \
+      move.to = ray->square;                                                   \
+      move.captured = ray->bboard & opponent_capturable                        \
+                          ? opponent->piece_at(move.to)                        \
+                          : '\0';                                              \
+      moves.push_back(move);                                                   \
+      if (move.captured)                                                       \
         break;                                                                 \
       ray += 1;                                                                \
     }                                                                          \
@@ -807,14 +776,13 @@ std::vector<Move> BoardState::generate_moves() const {
           move.to = s->square;
           move.piece = 'n';
           move.captured = s->bboard & opponent_capturable
-                               ? opponent->piece_at(move.to)
-                               : '\0';
+                              ? opponent->piece_at(move.to)
+                              : '\0';
           moves.push_back(move);
         }
         s += 1;
       }
-    }
-    break;
+    } break;
 
     case 'k': {
 
@@ -829,8 +797,8 @@ std::vector<Move> BoardState::generate_moves() const {
           move.from = p->square;
           move.to = s->square;
           move.captured = s->bboard & opponent_capturable
-                               ? opponent->piece_at(move.to)
-                               : '\0';
+                              ? opponent->piece_at(move.to)
+                              : '\0';
           moves.push_back(move);
         }
         s += 1;
@@ -928,28 +896,28 @@ std::vector<Move> BoardState::generate_moves() const {
   do {                                                                         \
     dest_square = SQUARE(from_row + pawn_direction, from_col + (dir));         \
     dest = BBOARD(dest_square);                                                \
-    if (dest & (opponent_capturable | enpassant)) {                \
+    if (dest & (opponent_capturable | enpassant)) {                            \
       if (dest_row != promotion_row) {                                         \
-        Move move;                                     \
-        move.piece = 'p';                                                     \
-        move.from = p->square;                                                \
-        move.to = dest_square;                                                \
-        if (move.enpassant = dest == enpassant) {                 \
-          move.captured = 'p';                                                \
+        Move move;                                                             \
+        move.piece = 'p';                                                      \
+        move.from = p->square;                                                 \
+        move.to = dest_square;                                                 \
+        if (move.enpassant = dest == enpassant) {                              \
+          move.captured = 'p';                                                 \
         } else {                                                               \
-          move.captured = opponent->piece_at(dest_square);              \
+          move.captured = opponent->piece_at(dest_square);                     \
         }                                                                      \
-        moves.push_back(move);                                           \
+        moves.push_back(move);                                                 \
       } else {                                                                 \
-        char captured = opponent->piece_at(dest_square);                 \
+        char captured = opponent->piece_at(dest_square);                       \
         for (int i = 0; i < 4; i += 1) {                                       \
-          Move move;                                   \
-          move.piece = 'p';                                                   \
-          move.from = p->square;                                              \
-          move.to = dest_square;                                              \
-          move.captured = captured;                                           \
-          move.promotion = "qnrb"[i];                                         \
-          moves.push_back(move); \
+          Move move;                                                           \
+          move.piece = 'p';                                                    \
+          move.from = p->square;                                               \
+          move.to = dest_square;                                               \
+          move.captured = captured;                                            \
+          move.promotion = "qnrb"[i];                                          \
+          moves.push_back(move);                                               \
         }                                                                      \
       }                                                                        \
     }                                                                          \
@@ -968,7 +936,6 @@ std::vector<Move> BoardState::generate_moves() const {
 
   } while (p->name);
 
-
   return moves;
 
 #undef PAWN_CAPTURE
@@ -977,15 +944,10 @@ std::vector<Move> BoardState::generate_moves() const {
 #undef RAY_MOVES
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 Move BoardState::get_move(const std::string &san) const {
   Move m;
   return m;
 }
-
-
-
-
 
 } // namespace siegbert

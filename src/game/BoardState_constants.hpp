@@ -7,8 +7,8 @@
 extern "C" {
 
 struct bboard_and_square_t {
-    uint64_t bboard;
-    uint8_t square;
+  uint64_t bboard;
+  uint8_t square;
 };
 
 extern const uint64_t KING_CAPTURES[64];
@@ -25,7 +25,6 @@ extern const bboard_and_square_t ROOK_RAY_N[64][8];
 extern const bboard_and_square_t ROOK_RAY_S[64][8];
 extern const bboard_and_square_t ROOK_RAY_E[64][8];
 extern const bboard_and_square_t ROOK_RAY_W[64][8];
-
 }
 
 #endif
