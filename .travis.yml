@@ -3,7 +3,8 @@ dist: focal
 compiler: gcc
 
 addons:
-  packages:
+  apt:
+    packages:
     - cmake
     - libboost-regex-dev
 
