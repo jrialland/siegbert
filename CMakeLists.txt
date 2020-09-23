@@ -41,8 +41,12 @@ set(SIEGBERT_PGN_SRC
 )
 
 ################################################################################
-file(GLOB_RECURSE SIEGBERT_UNITTESTS_SRC
-    ${CMAKE_SOURCE_DIR}/src/unittests/*.cpp
+set(SIEGBERT_UNITTESTS_SRC
+    ${CMAKE_SOURCE_DIR}/src/unittests/main.cpp
+    ${CMAKE_SOURCE_DIR}/src/unittests/test_BoardState.cpp
+    ${CMAKE_SOURCE_DIR}/src/unittests/test_Evaluator.cpp
+    ${CMAKE_SOURCE_DIR}/src/unittests/test_perft.cpp
+    ${CMAKE_SOURCE_DIR}/src/unittests/test_Pgn.cpp   
 )
 
 ################################################################################
