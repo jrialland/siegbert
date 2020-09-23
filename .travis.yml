@@ -1,0 +1,14 @@
+language: cpp
+dist: focal
+compiler: gcc
+
+addons:
+  packages:
+    - cmake
+    - libboost-regex-dev
+
+script: 
+  - cmake .
+  - make -j8
+  - ./unittests
+
