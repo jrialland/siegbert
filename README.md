@@ -44,6 +44,7 @@ How to compile :
 plain c++17. tested with g++, might also work with clang (msvc ?)
 
 ```sh
+    sudo apt install libboost-regex-dev
     cmake build
     cd build && make -j8
 ```
