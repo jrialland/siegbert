@@ -11,29 +11,6 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost REQUIRED COMPONENTS regex)
 
 ################################################################################
-set(SIEGBERT_MOVEGEN_SRC
-    ${CMAKE_SOURCE_DIR}/src/movegen/movegen.c
-    ${CMAKE_SOURCE_DIR}/src/movegen/movegen_constants.c
-    ${CMAKE_SOURCE_DIR}/src/movegen/movegen_zobrist_hash.c    
-)
-add_library(siegbert_movegen STATIC ${SIEGBERT_MOVEGEN_SRC})
-
-target_include_directories(siegbert_movegen PRIVATE 
-    ${CMAKE_SOURCE_DIR}/deps/libpopcnt/
-    ${CMAKE_SOURCE_DIR}/src/
-)
-
-#target_compile_options(siegbert_movegen
-#  PRIVATE
-#    -Os -fomit-frame-pointer -faggressive-loop-optimizations
-#)
-
-target_compile_options(siegbert_movegen
-  PRIVATE
-    -g
-)
-
-################################################################################
 
 set(SIEGBERT_EVALUATOR_SRC
   ${CMAKE_SOURCE_DIR}/src/evaluator/Evaluator.cpp
@@ -44,6 +21,9 @@ set(SIEGBERT_EVALUATOR_SRC
 
 set(SIEGBERT_GAME_SRC
   ${CMAKE_SOURCE_DIR}/src/game/BoardState.cpp
+  ${CMAKE_SOURCE_DIR}/src/game/BoardState_constants.cpp
+  ${CMAKE_SOURCE_DIR}/src/game/BoardState_zobrist.cpp
+  ${CMAKE_SOURCE_DIR}/src/game/square_for_bboard.cpp
 )
 
 set(SIEGBERT_INTERFACE_SRC
@@ -74,12 +54,11 @@ add_executable(siegbert
 )
 
 target_include_directories(siegbert PRIVATE 
+    ${CMAKE_SOURCE_DIR}/deps/libpopcnt/
     ${CMAKE_SOURCE_DIR}/src/
 )
 
 target_link_libraries(siegbert ${Boost_LIBRARIES})
-target_link_libraries(siegbert siegbert_movegen)
-
 
 ################################################################################
 add_executable(unittests 
@@ -94,12 +73,12 @@ target_compile_options(unittests
     -g
 )
 
-target_include_directories(unittests PRIVATE 
+target_include_directories(unittests PRIVATE
+    ${CMAKE_SOURCE_DIR}/deps/libpopcnt/
     ${CMAKE_SOURCE_DIR}/deps/catch2/
     ${CMAKE_SOURCE_DIR}/src/
 )
 target_link_libraries(unittests ${Boost_LIBRARIES})
-target_link_libraries(unittests siegbert_movegen)
 
 enable_testing()
 add_test(NAME UnitTests COMMAND ${PROJECT_BINARY_DIR}/unittests)

@@ -1,12 +1,6 @@
 
-#define MOVEGEN_PRIVATE
-#include "movegen.h"
-#include "movegen_constants.h"
-#undef MOVEGEN_PRIVATE
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "game/BoardState.hpp"
 
 /* The seed that is used for polyglot zobrist hashes */
 static const uint64_t zobrist_random64[781] = {
@@ -272,6 +266,9 @@ static const uint64_t zobrist_random64[781] = {
     0xD0E4427A5514FB72, 0x77C621CC9FB3A483, 0x67A34DAC4356550B,
     0xF8D626AAAF278509};
 
+namespace siegbert {
+
+
 static inline int piece_value(char piece) {
   switch (piece) {
   case 'p':
@@ -287,142 +284,138 @@ static inline int piece_value(char piece) {
   case 'k':
     return 10;
   }
+  return -1;
 }
 
-uint64_t boardstate_recompute_zobrist_hash(boardstate_t *boardstate) {
 
+void BoardState::recompute_z() {
   uint64_t p = 0;
-  const piece_t *pp;
-  pp = boardstate->white.pieces;
+  const Piece *pp;
+  pp = white.pieces;
   while (pp->name) {
     p ^=
         zobrist_random64[64 * (1 + piece_value(pp->name)) + OFFSET(pp->square)];
     pp += 1;
   }
-  pp = boardstate->black.pieces;
+  pp = black.pieces;
   while (pp->name) {
     p ^= zobrist_random64[64 * piece_value(pp->name) + OFFSET(pp->square)];
     pp += 1;
   }
 
   uint64_t c = 0;
-  if (boardstate->white_castling.kingside) {
+  if (white_castling.kingside) {
     c ^= zobrist_random64[768];
   }
-  if (boardstate->white_castling.queenside) {
+  if (white_castling.queenside) {
     c ^= zobrist_random64[769];
   }
-  if (boardstate->black_castling.kingside) {
+  if (black_castling.kingside) {
     c ^= zobrist_random64[770];
   }
-  if (boardstate->black_castling.queenside) {
+  if (black_castling.queenside) {
     c ^= zobrist_random64[771];
   }
 
   uint64_t e = 0;
-  if (boardstate->enpassant) {
-    e = zobrist_random64[772 + COL(square_for_bboard(boardstate->enpassant))];
+  if (enpassant) {
+    e = zobrist_random64[772 + COL(square_for_bboard(enpassant))];
   }
 
-  uint64_t t = boardstate->white_to_move ? zobrist_random64[780] : 0;
+  uint64_t t = white_to_move ? zobrist_random64[780] : 0;
 
-  return boardstate->z = p ^ c ^ e ^ t;
+  z = p ^ c ^ e ^ t;
 }
 
-void boardstate_evolve_zobrist_hash(boardstate_t *boardstate,
-                                    const boardstate_memento_t *previous_values,
-                                    const move_t *move) {
-  int valoffset = boardstate->white_to_move ? 0 : 1;
+void BoardState::evolve_z(const Move& move, const Castling& previous_castling,
+ int previous_halfmoves,
+      uint64_t previous_enpassant) {
+
+  int valoffset = white_to_move ? 0 : 1;
 
   // for castling, update the hash for the rook move
-  if (move->kingside_castling) {
-    int row = boardstate->white_to_move ? 7 : 0;
+  if (move.kingside_castling) {
+    int row = white_to_move ? 7 : 0;
     int base = 64 * (piece_value('r') + valoffset);
-    boardstate->z ^= zobrist_random64[base + OFFSET(SQUARE(row, 7))];
-    boardstate->z ^= zobrist_random64[base + OFFSET(SQUARE(row, 5))];
-  } else if (move->queenside_castling) {
-    int row = boardstate->white_to_move ? 7 : 0;
+    z ^= zobrist_random64[base + OFFSET(SQUARE(row, 7))];
+    z ^= zobrist_random64[base + OFFSET(SQUARE(row, 5))];
+  } else if (move.queenside_castling) {
+    int row = white_to_move ? 7 : 0;
     int base = 64 * (piece_value('r') + valoffset);
-    boardstate->z ^= zobrist_random64[base + OFFSET(SQUARE(row, 0))];
-    boardstate->z ^= zobrist_random64[base + OFFSET(SQUARE(row, 3))];
+    z ^= zobrist_random64[base + OFFSET(SQUARE(row, 0))];
+    z ^= zobrist_random64[base + OFFSET(SQUARE(row, 3))];
   }
 
   // if the move is a capture
-  else if (move->captured) {
+  else if (move.captured) {
 
     int nvaloffset = valoffset ? 0 : 1;
 
-    if (move->enpassant) {
-      int capture_row = boardstate->white_to_move ? 3 : 4;
-      int capture_col = COL(move->to);
-      boardstate->z ^= zobrist_random64[64 * (piece_value('p') + nvaloffset) +
+    if (move.enpassant) {
+      int capture_row = white_to_move ? 3 : 4;
+      int capture_col = COL(move.to);
+      z ^= zobrist_random64[64 * (piece_value('p') + nvaloffset) +
                                         capture_row * 8 + capture_col];
     } else {
-      int cap_value = piece_value(move->captured) + nvaloffset;
-      boardstate->z ^= zobrist_random64[64 * cap_value + OFFSET(move->to)];
+      int cap_value = piece_value(move.captured) + nvaloffset;
+      z ^= zobrist_random64[64 * cap_value + OFFSET(move.to)];
     }
   }
 
   // normal move : disappear from board
-  boardstate->z ^=
-      zobrist_random64[64 * (piece_value(move->piece) + valoffset) +
-                       OFFSET(move->from)];
+  z ^=
+      zobrist_random64[64 * (piece_value(move.piece) + valoffset) +
+                       OFFSET(move.from)];
 
   // reappear
-  if (move->promotion) {
-    boardstate->z ^=
-        zobrist_random64[64 * (piece_value(move->promotion) + valoffset) +
-                         OFFSET(move->to)];
+  if (move.promotion) {
+    z ^=
+        zobrist_random64[64 * (piece_value(move.promotion) + valoffset) +
+                         OFFSET(move.to)];
   } else {
-    boardstate->z ^=
-        zobrist_random64[64 * (piece_value(move->piece) + valoffset) +
-                         OFFSET(move->to)];
+    z ^=
+        zobrist_random64[64 * (piece_value(move.piece) + valoffset) +
+                         OFFSET(move.to)];
   }
 
   // castling
-  if (boardstate->white_to_move) {
-    if (boardstate->white_castling.kingside !=
-        previous_values->castling.kingside) {
-      boardstate->z ^= zobrist_random64[768];
+  if (white_to_move) {
+    if (white_castling.kingside != previous_castling.kingside) {
+      z ^= zobrist_random64[768];
     }
-    if (boardstate->white_castling.queenside !=
-        previous_values->castling.queenside) {
-      boardstate->z ^= zobrist_random64[769];
+    if (white_castling.queenside != previous_castling.queenside) {
+      z ^= zobrist_random64[769];
     }
   } else {
-    if (boardstate->white_castling.kingside !=
-        previous_values->castling.kingside) {
-      boardstate->z ^= zobrist_random64[770];
+    if (white_castling.kingside != previous_castling.kingside) {
+      z ^= zobrist_random64[770];
     }
-    if (boardstate->white_castling.queenside !=
-        previous_values->castling.queenside) {
-      boardstate->z ^= zobrist_random64[771];
+    if (white_castling.queenside != previous_castling.queenside) {
+      z ^= zobrist_random64[771];
     }
   }
 
   /* enpassant : xor with previous value again in order to
    * to revert the hash (if it was zero, z remains unchanged)
    */
-  if (previous_values->enpassant) {
-    boardstate->z ^=
+  if (previous_enpassant) {
+    z ^=
         zobrist_random64[772 +
-                         COL(square_for_bboard(previous_values->enpassant))];
+                         COL(square_for_bboard(previous_enpassant))];
   }
 
   /*
    * enpassant : xor with the new enpassant value
    */
-  if (boardstate->enpassant) {
-    boardstate->z ^=
-        zobrist_random64[772 + COL(square_for_bboard(boardstate->enpassant))];
+  if (enpassant) {
+    z ^=
+        zobrist_random64[772 + COL(square_for_bboard(enpassant))];
   }
 
   /* turn : white becomes black (even xor count leads to 0)
    * black become white (odd number of xors)
    */
-  boardstate->z ^= zobrist_random64[780];
+  z ^= zobrist_random64[780];
 }
 
-#ifdef __cplusplus
 }
-#endif

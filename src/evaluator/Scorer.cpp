@@ -12,7 +12,7 @@ namespace siegbert {
 #define QUEEN_VAL 880
 
 int Berliner1999Scorer::score(const BoardState &boardstate) {
-  pieces_count_t count = boardstate.count_pieces();
+  PiecesCount count = boardstate.count_pieces();
 
   centipawns_t white_score =
       PAWN_VAL * count.white_pawns + KNIGHT_VAL * count.white_knights +

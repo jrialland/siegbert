@@ -68,7 +68,7 @@ void XBoardInterface::receive(const std::string &line) {
   boost::cmatch m;
 
   if (regex_match(line.c_str(), m, re_move)) {
-    boardstate_memento_t memento = boardstate.memento();
+    Memento memento = boardstate.memento();
     Move m = boardstate.get_move(line);
     history.push_back(std::make_pair(m, memento));
     boardstate.make_move(m);

@@ -16,7 +16,7 @@ class XBoardInterface : public EngineInterface {
 private:
   bool force = false;
 
-  std::vector<std::pair<Move, boardstate_memento_t>> history;
+  std::vector<std::pair<Move, Memento>> history;
 
   std::map<std::string, std::function<void()>> handlers;
 
