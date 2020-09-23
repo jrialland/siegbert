@@ -122,8 +122,6 @@ void BoardState::unmake_move(const Move &move,
   boardstate_unmake_move(this, &move, &memento);
 }
 
-bool BoardState::is_check() const { return boardstate_is_check(this); }
-
 std::string BoardState::attacked_str() const {
   char tmp[73];
   bboard_to_str(boardstate_attacked(this), tmp);
@@ -137,6 +135,10 @@ bool BoardState::is_white_to_move() const { return white_to_move; }
 int BoardState::get_halfmoves() const { return halfmoves; }
 
 uint64_t BoardState::get_enpassant() const { return enpassant; }
+
+bool BoardState::is_check() const {
+  return boardstate_is_check(this);
+}
 
 pieces_count_t BoardState::count_pieces() const {
   pieces_count_t pc;

@@ -9,7 +9,6 @@ addons:
     - libboost-regex-dev
 
 script: 
-  - cmake .
-  - make -j8
-  - ./unittests
+  - mkdir -p build && cd build && cmake .. && make -j8
+  - ./build/unittests
 

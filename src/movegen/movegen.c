@@ -776,23 +776,6 @@ typedef struct _predicate {
   void *data;
 } predicate_t;
 
-bool boardstate_is_check(const boardstate_t *boardstate) {
-  const state_t *moving;
-  const state_t *opponent;
-  bool opponent_is_white;
-  if (boardstate->white_to_move) {
-    moving = &boardstate->white;
-    opponent = &boardstate->black;
-    opponent_is_white = false;
-  } else {
-    moving = &boardstate->black;
-    opponent = &boardstate->white;
-    opponent_is_white = true;
-  }
-  uint64_t attacked = state_compute_attack(opponent, moving, opponent_is_white);
-  return !(attacked & moving->king);
-}
-
 static INLINE bool is_legal_move(const boardstate_t *boardstate,
                                  const move_t *move) {
   boardstate_t copy;
@@ -962,6 +945,17 @@ void boardstate_unmake_move(boardstate_t *boardstate, const move_t *move,
   boardstate->halfmoves = memento->halfmoves;
   boardstate->enpassant = memento->enpassant;
   boardstate->z = memento->z;
+}
+
+
+bool boardstate_is_check(const boardstate_t *boardstate) {
+  if(boardstate->white_to_move) {
+    uint64_t attacked = state_compute_attack(&boardstate->black, &boardstate->white, false);
+    return boardstate->white.king & attacked;
+  } else {
+    uint64_t attacked = state_compute_attack(&boardstate->white, &boardstate->black, true);
+    return boardstate->black.king & attacked;
+  }
 }
 
 /*---------------------------------------------------------------------------*/

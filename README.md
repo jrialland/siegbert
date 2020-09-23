@@ -45,8 +45,7 @@ plain c++17. tested with g++, might also work with clang (msvc ?)
 
 ```sh
     sudo apt install libboost-regex-dev
-    cmake build
-    cd build && make -j8
+    mkdir -p build && cd build && cmake .. && make -j8
 ```
 
 How to test :
