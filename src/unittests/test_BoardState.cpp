@@ -67,7 +67,7 @@ TEST_CASE("white promotion", "[BoardState][smoke_test]") {
   auto moves = b.generate_moves();
   REQUIRE(moves.size() == 9); // 5 king moves + 4 promotions
   int prom_moves = 0, king_moves = 0;
-  for (auto move : moves) {
+  for (auto &move : moves) {
     if (move.piece == 'p') {
       REQUIRE(move.from == SQUARE(6, 3));
       REQUIRE(move.to == SQUARE(7, 3));
@@ -87,7 +87,7 @@ TEST_CASE("black promotion", "[BoardState][smoke_test]") {
   auto b = BoardState::from_fen("1K2k1n1/6b1/8/8/8/8/5p2/8 b - - 0 1");
   auto moves = b.generate_moves();
   int prom_moves = 0;
-  for (auto move : moves) {
+  for (auto &move : moves) {
     if (move.piece == 'p') {
       REQUIRE(move.from == SQUARE(1, 5));
       REQUIRE(move.to == SQUARE(0, 5));
@@ -117,10 +117,10 @@ TEST_CASE("castling white queenside", "[BoardState][smoke_test]") {
 
 void replay_moves(const Pgn &game, bool verbose) {
   auto b = BoardState::initial();
-  for (std::string m : game.moves) {
+  for (auto &m : game.moves) {
     if (verbose) {
       cout << "------------" << endl;
-      cout << b.to_fen() << endl;
+      cout << b.to_fen() << '\t' << m << endl;
       cout << b << endl;
     }
     Move move = b.get_move(m);
@@ -144,7 +144,7 @@ ifstream get_file(const string &basename) {
 void replay(const string &basename) {
   ifstream f = get_file(basename);
   auto games = Pgn::read(f, basename);
-  for (auto game : games) {
+  for (auto &game : games) {
     replay_moves(game, false);
   }
 }
@@ -164,7 +164,7 @@ void replay_and_unmake(const Pgn &pgn) {
   vector<string> fens;
   fens.push_back(b.to_fen());
 
-  for (auto m : pgn.moves) {
+  for (auto &m : pgn.moves) {
     Move move = b.get_move(m);
     auto memento = b.memento();
     if (b.make_move(move)) {
@@ -182,7 +182,7 @@ void replay_and_unmake(const Pgn &pgn) {
 TEST_CASE("replay_and_unmake", "[BoardState][make_unmake]") {
   ifstream f = get_file("Carlsen.pgn");
   auto games = Pgn::read(f, "Carlsen.pgn");
-  for (auto game : games) {
+  for (auto &game : games) {
     replay_and_unmake(game);
   }
 }
