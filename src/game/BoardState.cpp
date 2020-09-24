@@ -1,6 +1,7 @@
 
 #include <libpopcnt.h>
 
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -8,6 +9,8 @@
 using namespace std;
 
 #include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
+using namespace boost;
 
 #include "game/BoardState.hpp"
 #include "game/BoardState_constants.hpp"
@@ -30,8 +33,8 @@ Move::Move()
       pawn_jumstart(false) {}
 
 ////////////////////////////////////////////////////////////////////////////////
-std::string Move::to_str() const {
-  std::ostringstream ss;
+string Move::to_str() const {
+  ostringstream ss;
   ss << "abcdefgh"[COL(from)];
   ss << "12345678"[ROW(from)];
   ss << "abcdefgh"[COL(to)];
@@ -40,8 +43,8 @@ std::string Move::to_str() const {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-std::string Move::to_json() const {
-  std::ostringstream ss;
+string Move::to_json() const {
+  ostringstream ss;
   ss << "{";
   ss << "\"piece\":\"" << piece << "\", ";
   if (captured) {
@@ -71,7 +74,7 @@ std::string Move::to_json() const {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-std::ostream &operator<<(std::ostream &os, const Move &move) {
+ostream &operator<<(ostream &os, const Move &move) {
   os << move.to_str();
   return os;
 }
@@ -167,16 +170,16 @@ void State::remove_from_piece_list(square_t square) {
   }
 }
 
-template<const bboard_and_square_t ray[64][8]>
+template <const bboard_and_square_t ray[64][8]>
 inline uint64_t ray_attack(const uint64_t occupied, const int offset) {
   uint64_t a = 0;
   auto ptr = ray[offset];
-  while (ptr->bboard) {                                                      
-      a = a | ptr->bboard;
-      if (ptr->bboard & occupied) { 
-        break;
-      }      
-      ptr += 1;
+  while (ptr->bboard) {
+    a = a | ptr->bboard;
+    if (ptr->bboard & occupied) {
+      break;
+    }
+    ptr += 1;
   }
   return a;
 }
@@ -338,14 +341,14 @@ BoardState BoardState::initial() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-BoardState BoardState::from_fen(const std::string &fen) {
+BoardState BoardState::from_fen(const string &fen) {
   BoardState self;
   vector<string> items;
   State *current;
 
   boost::split(items, fen, boost::is_space());
   if (items.size() != 6) {
-    throw std::invalid_argument("invalid fen");
+    throw invalid_argument("invalid fen");
   }
 
   /* positions */
@@ -375,7 +378,7 @@ BoardState BoardState::from_fen(const std::string &fen) {
 
   /* moves */
   string moves = items[5];
-  self.moves = std::stoi(moves);
+  self.moves = stoi(moves);
 
   /* castlings */
   string castlings = items[2];
@@ -396,15 +399,15 @@ BoardState BoardState::from_fen(const std::string &fen) {
 
   /* halfmoves */
   string halfmoves = items[4];
-  self.halfmoves = std::stoi(halfmoves);
+  self.halfmoves = stoi(halfmoves);
 
   self.recompute_z();
   return self;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-std::string BoardState::to_fen() const {
-  std::string fen;
+string BoardState::to_fen() const {
+  string fen;
   fen.reserve(128);
   /* position */
   for (int row = 7; row >= 0; row -= 1) {
@@ -418,14 +421,14 @@ std::string BoardState::to_fen() const {
         empty += 1;
       } else {
         if (empty > 0) {
-          fen += std::to_string(empty);
+          fen += to_string(empty);
           empty = 0;
         }
         fen += p;
       }
     }
     if (empty > 0) {
-      fen += std::to_string(empty);
+      fen += to_string(empty);
     }
   }
 
@@ -461,22 +464,24 @@ std::string BoardState::to_fen() const {
   if (enpassant) {
     square_t e = square_for_bboard(enpassant);
     fen += abcdefgh[COL(e)];
-    fen += std::to_string(1 + ROW(e));
+    fen += to_string(1 + ROW(e));
   } else {
     fen += '-';
   }
 
   /* half moves */
-  fen += std::to_string(halfmoves);
+  fen += ' ';
+  fen += to_string(halfmoves);
 
   /* moves */
-  fen += std::to_string(moves);
+  fen += ' ';
+  fen += to_string(moves);
 
   return fen;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-std::string BoardState::to_str() const {
+string BoardState::to_str() const {
   string s;
   const string s_white = white.to_str();
   const string s_black = black.to_str();
@@ -684,96 +689,82 @@ PiecesCount BoardState::count_pieces() const {
 uint64_t BoardState::get_zobrist_hash() const { return z; }
 
 ////////////////////////////////////////////////////////////////////////////////
-std::ostream &operator<<(std::ostream &os, const BoardState &boardstate) {
+ostream &operator<<(ostream &os, const BoardState &boardstate) {
   os << boardstate.to_str();
   return os;
 }
 
-template<const bboard_and_square_t ray[64][8]>
-inline void branch_move(
-  vector<Move>& moves,
-  const Piece *piece,
-  const State*moving,
-  const State*opponent,
-  const uint64_t opponent_capturable
-  ) {
-    const bboard_and_square_t *r = ray[OFFSET(piece->square)];                         
-    while (r->bboard) {                                                      
-      if (r->bboard & moving->presence)                                      
-        break;                                                                 
-      Move move;                                                               
-      move.piece = piece->name;                                                 
-      move.from = piece->square;                                                   
-      move.to = r->square;                                                   
-      move.captured = r->bboard & opponent_capturable                        
-                          ? opponent->piece_at(move.to)                        
-                          : '\0';                                              
-      moves.push_back(move);                                                   
-      if (move.captured)                                                       
-        break;                                                                 
-      r += 1;                                                                
-    }                                                                          
+template <const bboard_and_square_t ray[64][8]>
+inline void branch_move(vector<Move> &moves, const Piece *piece,
+                        const State *moving, const State *opponent,
+                        const uint64_t opponent_capturable) {
+  const bboard_and_square_t *r = ray[OFFSET(piece->square)];
+  while (r->bboard) {
+    if (r->bboard & moving->presence)
+      break;
+    Move move;
+    move.piece = piece->name;
+    move.from = piece->square;
+    move.to = r->square;
+    move.captured =
+        r->bboard & opponent_capturable ? opponent->piece_at(move.to) : '\0';
+    moves.push_back(move);
+    if (move.captured)
+      break;
+    r += 1;
+  }
 }
 
-template<
-const bboard_and_square_t ray0[64][8],
-const bboard_and_square_t ray1[64][8],
-const bboard_and_square_t ray2[64][8],
-const bboard_and_square_t ray3[64][8]
->
-inline void ray_moves(
-  vector<Move>& moves,
-  const Piece* piece,
-  const State*moving,
-  const State*opponent,
-  const uint64_t opponent_capturable
-) {
+template <const bboard_and_square_t ray0[64][8],
+          const bboard_and_square_t ray1[64][8],
+          const bboard_and_square_t ray2[64][8],
+          const bboard_and_square_t ray3[64][8]>
+inline void ray_moves(vector<Move> &moves, const Piece *piece,
+                      const State *moving, const State *opponent,
+                      const uint64_t opponent_capturable) {
   branch_move<ray0>(moves, piece, moving, opponent, opponent_capturable);
   branch_move<ray1>(moves, piece, moving, opponent, opponent_capturable);
   branch_move<ray2>(moves, piece, moving, opponent, opponent_capturable);
   branch_move<ray3>(moves, piece, moving, opponent, opponent_capturable);
 }
 
-template<int pawn_direction, int dir>
-inline void pawn_capture(
-  vector<Move>& moves,
-  const Piece *piece,
-  const State* opponent,
-  const uint64_t opponent_capturable,
-  const uint64_t enpassant,
-  const int dest_row
-) {
-    const square_t dest_square = SQUARE(ROW(piece->square) + pawn_direction, COL(piece->square) + dir);         
-    const uint64_t dest = BBOARD(dest_square);                                                
-    if (dest & (opponent_capturable | enpassant)) {                            
-      if (dest_row != (pawn_direction==1?7:0)) {                                         
-        Move move;                                                             
-        move.piece = 'p';                                                      
-        move.from = piece->square;                                                 
-        move.to = dest_square;                                                 
-        if (move.enpassant = dest == enpassant) {                              
-          move.captured = 'p';                                                 
-        } else {                                                               
-          move.captured = opponent->piece_at(dest_square);                     
-        }                                                                      
-        moves.push_back(move);                                                 
-      } else {                                                                 
-        char captured = opponent->piece_at(dest_square);                       
-        for (int i = 0; i < 4; i += 1) {                                       
-          Move move;                                                           
-          move.piece = 'p';                                                    
-          move.from = piece->square;                                               
-          move.to = dest_square;                                               
-          move.captured = captured;                                            
-          move.promotion = "qnrb"[i];                                          
-          moves.push_back(move);                                               
-        }                                                                      
-      }                                                                        
-    }                                                                          
+template <int pawn_direction, int dir>
+inline void pawn_capture(vector<Move> &moves, const Piece *piece,
+                         const State *opponent,
+                         const uint64_t opponent_capturable,
+                         const uint64_t enpassant, const int dest_row) {
+  const square_t dest_square =
+      SQUARE(ROW(piece->square) + pawn_direction, COL(piece->square) + dir);
+  const uint64_t dest = BBOARD(dest_square);
+  if (dest & (opponent_capturable | enpassant)) {
+    if (dest_row != (pawn_direction == 1 ? 7 : 0)) {
+      Move move;
+      move.piece = 'p';
+      move.from = piece->square;
+      move.to = dest_square;
+      if (move.enpassant = dest == enpassant) {
+        move.captured = 'p';
+      } else {
+        move.captured = opponent->piece_at(dest_square);
+      }
+      moves.push_back(move);
+    } else {
+      char captured = opponent->piece_at(dest_square);
+      for (int i = 0; i < 4; i += 1) {
+        Move move;
+        move.piece = 'p';
+        move.from = piece->square;
+        move.to = dest_square;
+        move.captured = captured;
+        move.promotion = "qnrb"[i];
+        moves.push_back(move);
+      }
+    }
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector<Move> BoardState::generate_moves() const {
+vector<Move> BoardState::generate_moves() const {
 
   vector<Move> moves;
   const State *moving;
@@ -818,165 +809,165 @@ std::vector<Move> BoardState::generate_moves() const {
     int from_offset = OFFSET(p->square);
     switch (p->name) {
 
-      case 'n': {
-        const bboard_and_square_t *s = KNIGHT_MOVES[from_offset];
-        for (int i = 0; i < 8 && s->bboard; i += 1) {
-          if (s->bboard & ~moving->presence) {
-            Move move;
-            move.from = p->square;
-            move.to = s->square;
-            move.piece = 'n';
-            move.captured = s->bboard & opponent_capturable
-                                ? opponent->piece_at(move.to)
-                                : '\0';
-            moves.push_back(move);
-          }
-          s += 1;
+    case 'n': {
+      const bboard_and_square_t *s = KNIGHT_MOVES[from_offset];
+      for (int i = 0; i < 8 && s->bboard; i += 1) {
+        if (s->bboard & ~moving->presence) {
+          Move move;
+          move.from = p->square;
+          move.to = s->square;
+          move.piece = 'n';
+          move.captured = s->bboard & opponent_capturable
+                              ? opponent->piece_at(move.to)
+                              : '\0';
+          moves.push_back(move);
         }
-      } break;
+        s += 1;
+      }
+    } break;
 
-      case 'k': {
+    case 'k': {
 
-        uint64_t attacked = opponent->compute_attack(*moving, opponent_is_white);
-        const bboard_and_square_t *s = KING_MOVES[from_offset];
-        const uint64_t notok_squares = moving->presence | attacked;
+      uint64_t attacked = opponent->compute_attack(*moving, opponent_is_white);
+      const bboard_and_square_t *s = KING_MOVES[from_offset];
+      const uint64_t notok_squares = moving->presence | attacked;
 
-        for (int i = 0; i < 8 && s->bboard; i += 1) {
-          if (s->bboard & ~notok_squares) {
-            Move move;
-            move.piece = 'k';
-            move.from = p->square;
-            move.to = s->square;
-            move.captured = s->bboard & opponent_capturable
-                                ? opponent->piece_at(move.to)
-                                : '\0';
-            moves.push_back(move);
-          }
-          s += 1;
+      for (int i = 0; i < 8 && s->bboard; i += 1) {
+        if (s->bboard & ~notok_squares) {
+          Move move;
+          move.piece = 'k';
+          move.from = p->square;
+          move.to = s->square;
+          move.captured = s->bboard & opponent_capturable
+                              ? opponent->piece_at(move.to)
+                              : '\0';
+          moves.push_back(move);
+        }
+        s += 1;
+      }
+
+      /* castling */
+      if (BBOARD(p->square) & ~attacked) {
+
+#define OCCUPIED_OR_ATTACKED(col)                                              \
+  (BBOARD(SQUARE(initial_row, col)) & (opponent->presence | notok_squares))
+
+#define OCCUPIED(col)                                                          \
+  (BBOARD(SQUARE(initial_row, col)) & (moving->presence | opponent->presence))
+
+        if (castling->kingside &&
+            !(OCCUPIED_OR_ATTACKED(5) || OCCUPIED_OR_ATTACKED(6))) {
+
+          Move move;
+          move.piece = 'k';
+          move.from = SQUARE(initial_row, 4);
+          move.to = SQUARE(initial_row, 6);
+          move.kingside_castling = true;
+          moves.push_back(move);
         }
 
-        /* castling */
-        if (BBOARD(p->square) & ~attacked) {
-
-  #define OCCUPIED_OR_ATTACKED(col)                                              \
-    (BBOARD(SQUARE(initial_row, col)) & (opponent->presence | notok_squares))
-
-  #define OCCUPIED(col)                                                          \
-    (BBOARD(SQUARE(initial_row, col)) & (moving->presence | opponent->presence))
-
-          if (castling->kingside &&
-              !(OCCUPIED_OR_ATTACKED(5) || OCCUPIED_OR_ATTACKED(6))) {
-
-            Move move;
-            move.piece = 'k';
-            move.from = SQUARE(initial_row, 4);
-            move.to = SQUARE(initial_row, 6);
-            move.kingside_castling = true;
-            moves.push_back(move);
-          }
-
-          if (castling->queenside && !(OCCUPIED_OR_ATTACKED(3) ||
-                                      OCCUPIED_OR_ATTACKED(2) || OCCUPIED(1))) {
-            Move move;
-            move.piece = 'k';
-            move.from = SQUARE(initial_row, 4);
-            move.to = SQUARE(initial_row, 2);
-            move.queenside_castling = true;
-            moves.push_back(move);
-          }
-
-  #undef OCCUPIED_OR_ATTACKED
-  #undef OCCUPIED
+        if (castling->queenside && !(OCCUPIED_OR_ATTACKED(3) ||
+                                     OCCUPIED_OR_ATTACKED(2) || OCCUPIED(1))) {
+          Move move;
+          move.piece = 'k';
+          move.from = SQUARE(initial_row, 4);
+          move.to = SQUARE(initial_row, 2);
+          move.queenside_castling = true;
+          moves.push_back(move);
         }
-      } break;
 
-      case 'r': {
-        ray_moves<ROOK_RAY_N, ROOK_RAY_E, ROOK_RAY_S, ROOK_RAY_W>(moves, p, moving, opponent, opponent_capturable);
-      } break;
-      case 'b': {
-        ray_moves<BISHOP_RAY_NE, BISHOP_RAY_NW, BISHOP_RAY_SE, BISHOP_RAY_SW>(moves, p, moving, opponent, opponent_capturable);
-      } break;
-      case 'q': {
-        ray_moves<ROOK_RAY_N, ROOK_RAY_E, ROOK_RAY_S, ROOK_RAY_W>(moves, p, moving, opponent, opponent_capturable);
-        ray_moves<BISHOP_RAY_NE, BISHOP_RAY_NW, BISHOP_RAY_SE, BISHOP_RAY_SW>(moves, p, moving, opponent, opponent_capturable);
-      } break;
-      case 'p': {
+#undef OCCUPIED_OR_ATTACKED
+#undef OCCUPIED
+      }
+    } break;
 
-        int dest_row = from_row + pawn_direction;
-        square_t dest_square = SQUARE(dest_row, from_col);
-        uint64_t dest = BBOARD(dest_square);
+    case 'r': {
+      ray_moves<ROOK_RAY_N, ROOK_RAY_E, ROOK_RAY_S, ROOK_RAY_W>(
+          moves, p, moving, opponent, opponent_capturable);
+    } break;
+    case 'b': {
+      ray_moves<BISHOP_RAY_NE, BISHOP_RAY_NW, BISHOP_RAY_SE, BISHOP_RAY_SW>(
+          moves, p, moving, opponent, opponent_capturable);
+    } break;
+    case 'q': {
+      ray_moves<ROOK_RAY_N, ROOK_RAY_E, ROOK_RAY_S, ROOK_RAY_W>(
+          moves, p, moving, opponent, opponent_capturable);
+      ray_moves<BISHOP_RAY_NE, BISHOP_RAY_NW, BISHOP_RAY_SE, BISHOP_RAY_SW>(
+          moves, p, moving, opponent, opponent_capturable);
+    } break;
+    case 'p': {
 
-        /*non capture moves*/
-        if (dest & ~occupied) {
+      int dest_row = from_row + pawn_direction;
+      square_t dest_square = SQUARE(dest_row, from_col);
+      uint64_t dest = BBOARD(dest_square);
 
-          /* one step forward */
-          if (dest_row != promotion_row) {
+      /*non capture moves*/
+      if (dest & ~occupied) {
+
+        /* one step forward */
+        if (dest_row != promotion_row) {
+          Move move;
+          move.piece = 'p';
+          move.from = p->square;
+          move.to = dest_square;
+          moves.push_back(move);
+        } else {
+          /* promotion */
+          for (int i = 0; i < 4; i += 1) {
             Move move;
             move.piece = 'p';
+            move.promotion = "qnrb"[i];
             move.from = p->square;
             move.to = dest_square;
             moves.push_back(move);
-          } else {
-            /* promotion */
-            for (int i = 0; i < 4; i += 1) {
-              Move move;
-              move.piece = 'p';
-              move.promotion = "qnrb"[i];
-              move.from = p->square;
-              move.to = dest_square;
-              moves.push_back(move);
-            }
-          }
-
-          /* initial move : 2 steps forward */
-          if (from_row == pawn_row) {
-            int jump_dest_row = from_row + pawn_direction * 2;
-            square_t jump_dest = SQUARE(jump_dest_row, from_col);
-            dest = BBOARD(jump_dest);
-            if (dest & ~occupied) {
-              Move move;
-              move.piece = 'p';
-              move.pawn_jumstart = true;
-              move.from = p->square;
-              move.to = jump_dest;
-              moves.push_back(move);
-            }
           }
         }
 
-        /* capture left */
-        if (from_col > 0) {
-          if(white_to_move) {
-            pawn_capture<1,-1>(moves, p, opponent, opponent_capturable, enpassant, dest_row);
-          } else {
-            pawn_capture<-1,-1>(moves, p, opponent, opponent_capturable, enpassant, dest_row);
-          }
-        }
-
-        /* capture right */
-        if (from_col < 7) {
-          if(white_to_move) {
-            pawn_capture<1,1>(moves, p, opponent, opponent_capturable, enpassant, dest_row);
-          } else {
-            pawn_capture<-1,1>(moves, p, opponent, opponent_capturable, enpassant, dest_row);
+        /* initial move : 2 steps forward */
+        if (from_row == pawn_row) {
+          int jump_dest_row = from_row + pawn_direction * 2;
+          square_t jump_dest = SQUARE(jump_dest_row, from_col);
+          dest = BBOARD(jump_dest);
+          if (dest & ~occupied) {
+            Move move;
+            move.piece = 'p';
+            move.pawn_jumstart = true;
+            move.from = p->square;
+            move.to = jump_dest;
+            moves.push_back(move);
           }
         }
       }
-      break;
+
+      /* capture left */
+      if (from_col > 0) {
+        if (white_to_move) {
+          pawn_capture<1, -1>(moves, p, opponent, opponent_capturable,
+                              enpassant, dest_row);
+        } else {
+          pawn_capture<-1, -1>(moves, p, opponent, opponent_capturable,
+                               enpassant, dest_row);
+        }
+      }
+
+      /* capture right */
+      if (from_col < 7) {
+        if (white_to_move) {
+          pawn_capture<1, 1>(moves, p, opponent, opponent_capturable, enpassant,
+                             dest_row);
+        } else {
+          pawn_capture<-1, 1>(moves, p, opponent, opponent_capturable,
+                              enpassant, dest_row);
+        }
+      }
+    } break;
     }
-    
+
     p += 1;
 
   } while (p->name);
 
   return moves;
-
-}
-
-////////////////////////////////////////////////////////////////////////////////
-Move BoardState::get_move(const std::string &san) const {
-  Move m;
-  return m;
 }
 
 } // namespace siegbert
