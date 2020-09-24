@@ -10,5 +10,5 @@ addons:
 
 script: 
   - mkdir -p build && cd build && cmake .. && make -j8
-  - ./build/unittests
+  - ./unittests
 
