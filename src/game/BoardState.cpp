@@ -167,27 +167,29 @@ void State::remove_from_piece_list(square_t square) {
   }
 }
 
+template<const bboard_and_square_t ray[64][8]>
+inline uint64_t ray_attack(const uint64_t occupied, const int offset) {
+  uint64_t a = 0;
+  auto ptr = ray[offset];
+  while (ptr->bboard) {                                                      
+      a = a | ptr->bboard;
+      if (ptr->bboard & occupied) { 
+        break;
+      }      
+      ptr += 1;
+  }
+  return a;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 uint64_t State::compute_attack(const State &opponent, bool im_white) const {
-
-#define RAY_ATTACK(ray)                                                        \
-  do {                                                                         \
-    const bboard_and_square_t *ptr = ray[offset];                              \
-    while (ptr->bboard) {                                                      \
-      a = a | ptr->bboard;                                                     \
-      if (ptr->bboard & occupied) {                                            \
-        break;                                                                 \
-      }                                                                        \
-      ptr += 1;                                                                \
-    }                                                                          \
-  } while (0)
 
   const uint64_t occupied = presence | opponent.presence;
   uint64_t a = 0;
   const Piece *p = pieces;
 
   do {
-    uint8_t offset = OFFSET(p->square);
+    int offset = OFFSET(p->square);
     switch (p->name) {
     case 'p':
       a = a | (im_white ? WHITE_PAWN_CAPTURES : BLACK_PAWN_CAPTURES)[offset];
@@ -199,28 +201,27 @@ uint64_t State::compute_attack(const State &opponent, bool im_white) const {
       a = a | KING_CAPTURES[offset];
       break;
     case 'r':
-      RAY_ATTACK(ROOK_RAY_N);
-      RAY_ATTACK(ROOK_RAY_E);
-      RAY_ATTACK(ROOK_RAY_S);
-      RAY_ATTACK(ROOK_RAY_W);
+      a = a | ray_attack<ROOK_RAY_N>(occupied, offset);
+      a = a | ray_attack<ROOK_RAY_E>(occupied, offset);
+      a = a | ray_attack<ROOK_RAY_S>(occupied, offset);
+      a = a | ray_attack<ROOK_RAY_W>(occupied, offset);
       break;
     case 'q':
-      RAY_ATTACK(ROOK_RAY_N);
-      RAY_ATTACK(ROOK_RAY_E);
-      RAY_ATTACK(ROOK_RAY_S);
-      RAY_ATTACK(ROOK_RAY_W);
+      a = a | ray_attack<ROOK_RAY_N>(occupied, offset);
+      a = a | ray_attack<ROOK_RAY_E>(occupied, offset);
+      a = a | ray_attack<ROOK_RAY_S>(occupied, offset);
+      a = a | ray_attack<ROOK_RAY_W>(occupied, offset);
       /*nobreak;*/
     case 'b':
-      RAY_ATTACK(BISHOP_RAY_NE);
-      RAY_ATTACK(BISHOP_RAY_SE);
-      RAY_ATTACK(BISHOP_RAY_NW);
-      RAY_ATTACK(BISHOP_RAY_SW);
+      a = a | ray_attack<BISHOP_RAY_NE>(occupied, offset);
+      a = a | ray_attack<BISHOP_RAY_SE>(occupied, offset);
+      a = a | ray_attack<BISHOP_RAY_NW>(occupied, offset);
+      a = a | ray_attack<BISHOP_RAY_SW>(occupied, offset);
       break;
     }
     p += 1;
   } while (p->name);
   return a;
-#undef RAY_ATTACK
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -688,43 +689,93 @@ std::ostream &operator<<(std::ostream &os, const BoardState &boardstate) {
   return os;
 }
 
+template<const bboard_and_square_t ray[64][8]>
+inline void branch_move(
+  vector<Move>& moves,
+  const Piece *piece,
+  const State*moving,
+  const State*opponent,
+  const uint64_t opponent_capturable
+  ) {
+    const bboard_and_square_t *r = ray[OFFSET(piece->square)];                         
+    while (r->bboard) {                                                      
+      if (r->bboard & moving->presence)                                      
+        break;                                                                 
+      Move move;                                                               
+      move.piece = piece->name;                                                 
+      move.from = piece->square;                                                   
+      move.to = r->square;                                                   
+      move.captured = r->bboard & opponent_capturable                        
+                          ? opponent->piece_at(move.to)                        
+                          : '\0';                                              
+      moves.push_back(move);                                                   
+      if (move.captured)                                                       
+        break;                                                                 
+      r += 1;                                                                
+    }                                                                          
+}
+
+template<
+const bboard_and_square_t ray0[64][8],
+const bboard_and_square_t ray1[64][8],
+const bboard_and_square_t ray2[64][8],
+const bboard_and_square_t ray3[64][8]
+>
+inline void ray_moves(
+  vector<Move>& moves,
+  const Piece* piece,
+  const State*moving,
+  const State*opponent,
+  const uint64_t opponent_capturable
+) {
+  branch_move<ray0>(moves, piece, moving, opponent, opponent_capturable);
+  branch_move<ray1>(moves, piece, moving, opponent, opponent_capturable);
+  branch_move<ray2>(moves, piece, moving, opponent, opponent_capturable);
+  branch_move<ray3>(moves, piece, moving, opponent, opponent_capturable);
+}
+
+template<int pawn_direction, int dir>
+inline void pawn_capture(
+  vector<Move>& moves,
+  const Piece *piece,
+  const State* opponent,
+  const uint64_t opponent_capturable,
+  const uint64_t enpassant,
+  const int dest_row
+) {
+    const square_t dest_square = SQUARE(ROW(piece->square) + pawn_direction, COL(piece->square) + dir);         
+    const uint64_t dest = BBOARD(dest_square);                                                
+    if (dest & (opponent_capturable | enpassant)) {                            
+      if (dest_row != (pawn_direction==1?7:0)) {                                         
+        Move move;                                                             
+        move.piece = 'p';                                                      
+        move.from = piece->square;                                                 
+        move.to = dest_square;                                                 
+        if (move.enpassant = dest == enpassant) {                              
+          move.captured = 'p';                                                 
+        } else {                                                               
+          move.captured = opponent->piece_at(dest_square);                     
+        }                                                                      
+        moves.push_back(move);                                                 
+      } else {                                                                 
+        char captured = opponent->piece_at(dest_square);                       
+        for (int i = 0; i < 4; i += 1) {                                       
+          Move move;                                                           
+          move.piece = 'p';                                                    
+          move.from = piece->square;                                               
+          move.to = dest_square;                                               
+          move.captured = captured;                                            
+          move.promotion = "qnrb"[i];                                          
+          moves.push_back(move);                                               
+        }                                                                      
+      }                                                                        
+    }                                                                          
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 std::vector<Move> BoardState::generate_moves() const {
 
-#define RAY_MOVES(piece_name, RAY)                                             \
-  {                                                                            \
-    const bboard_and_square_t *ray = RAY[from_offset];                         \
-    while (ray->bboard) {                                                      \
-      if (ray->bboard & moving->presence)                                      \
-        break;                                                                 \
-      Move move;                                                               \
-      move.piece = piece_name;                                                 \
-      move.from = p->square;                                                   \
-      move.to = ray->square;                                                   \
-      move.captured = ray->bboard & opponent_capturable                        \
-                          ? opponent->piece_at(move.to)                        \
-                          : '\0';                                              \
-      moves.push_back(move);                                                   \
-      if (move.captured)                                                       \
-        break;                                                                 \
-      ray += 1;                                                                \
-    }                                                                          \
-  }
-
-#define ROOK_MOVES(piece_name)                                                 \
-  RAY_MOVES(piece_name, ROOK_RAY_N);                                           \
-  RAY_MOVES(piece_name, ROOK_RAY_E);                                           \
-  RAY_MOVES(piece_name, ROOK_RAY_S);                                           \
-  RAY_MOVES(piece_name, ROOK_RAY_W);
-
-#define BISHOP_MOVES(piece_name)                                               \
-  RAY_MOVES(piece_name, BISHOP_RAY_NE);                                        \
-  RAY_MOVES(piece_name, BISHOP_RAY_NW);                                        \
-  RAY_MOVES(piece_name, BISHOP_RAY_SE);                                        \
-  RAY_MOVES(piece_name, BISHOP_RAY_SW);
-
   vector<Move> moves;
-
   const State *moving;
   const State *opponent;
   bool opponent_is_white;
@@ -767,181 +818,159 @@ std::vector<Move> BoardState::generate_moves() const {
     int from_offset = OFFSET(p->square);
     switch (p->name) {
 
-    case 'n': {
-      const bboard_and_square_t *s = KNIGHT_MOVES[from_offset];
-      for (int i = 0; i < 8 && s->bboard; i += 1) {
-        if (s->bboard & ~moving->presence) {
-          Move move;
-          move.from = p->square;
-          move.to = s->square;
-          move.piece = 'n';
-          move.captured = s->bboard & opponent_capturable
-                              ? opponent->piece_at(move.to)
-                              : '\0';
-          moves.push_back(move);
+      case 'n': {
+        const bboard_and_square_t *s = KNIGHT_MOVES[from_offset];
+        for (int i = 0; i < 8 && s->bboard; i += 1) {
+          if (s->bboard & ~moving->presence) {
+            Move move;
+            move.from = p->square;
+            move.to = s->square;
+            move.piece = 'n';
+            move.captured = s->bboard & opponent_capturable
+                                ? opponent->piece_at(move.to)
+                                : '\0';
+            moves.push_back(move);
+          }
+          s += 1;
         }
-        s += 1;
-      }
-    } break;
+      } break;
 
-    case 'k': {
+      case 'k': {
 
-      uint64_t attacked = opponent->compute_attack(*moving, opponent_is_white);
-      const bboard_and_square_t *s = KING_MOVES[from_offset];
-      const uint64_t notok_squares = moving->presence | attacked;
+        uint64_t attacked = opponent->compute_attack(*moving, opponent_is_white);
+        const bboard_and_square_t *s = KING_MOVES[from_offset];
+        const uint64_t notok_squares = moving->presence | attacked;
 
-      for (int i = 0; i < 8 && s->bboard; i += 1) {
-        if (s->bboard & ~notok_squares) {
-          Move move;
-          move.piece = 'k';
-          move.from = p->square;
-          move.to = s->square;
-          move.captured = s->bboard & opponent_capturable
-                              ? opponent->piece_at(move.to)
-                              : '\0';
-          moves.push_back(move);
-        }
-        s += 1;
-      }
-
-      /* castling */
-      if (BBOARD(p->square) & ~attacked) {
-
-#define OCCUPIED_OR_ATTACKED(col)                                              \
-  (BBOARD(SQUARE(initial_row, col)) & (opponent->presence | notok_squares))
-
-#define OCCUPIED(col)                                                          \
-  (BBOARD(SQUARE(initial_row, col)) & (moving->presence | opponent->presence))
-
-        if (castling->kingside &&
-            !(OCCUPIED_OR_ATTACKED(5) || OCCUPIED_OR_ATTACKED(6))) {
-
-          Move move;
-          move.piece = 'k';
-          move.from = SQUARE(initial_row, 4);
-          move.to = SQUARE(initial_row, 6);
-          move.kingside_castling = true;
-          moves.push_back(move);
+        for (int i = 0; i < 8 && s->bboard; i += 1) {
+          if (s->bboard & ~notok_squares) {
+            Move move;
+            move.piece = 'k';
+            move.from = p->square;
+            move.to = s->square;
+            move.captured = s->bboard & opponent_capturable
+                                ? opponent->piece_at(move.to)
+                                : '\0';
+            moves.push_back(move);
+          }
+          s += 1;
         }
 
-        if (castling->queenside && !(OCCUPIED_OR_ATTACKED(3) ||
-                                     OCCUPIED_OR_ATTACKED(2) || OCCUPIED(1))) {
-          Move move;
-          move.piece = 'k';
-          move.from = SQUARE(initial_row, 4);
-          move.to = SQUARE(initial_row, 2);
-          move.queenside_castling = true;
-          moves.push_back(move);
+        /* castling */
+        if (BBOARD(p->square) & ~attacked) {
+
+  #define OCCUPIED_OR_ATTACKED(col)                                              \
+    (BBOARD(SQUARE(initial_row, col)) & (opponent->presence | notok_squares))
+
+  #define OCCUPIED(col)                                                          \
+    (BBOARD(SQUARE(initial_row, col)) & (moving->presence | opponent->presence))
+
+          if (castling->kingside &&
+              !(OCCUPIED_OR_ATTACKED(5) || OCCUPIED_OR_ATTACKED(6))) {
+
+            Move move;
+            move.piece = 'k';
+            move.from = SQUARE(initial_row, 4);
+            move.to = SQUARE(initial_row, 6);
+            move.kingside_castling = true;
+            moves.push_back(move);
+          }
+
+          if (castling->queenside && !(OCCUPIED_OR_ATTACKED(3) ||
+                                      OCCUPIED_OR_ATTACKED(2) || OCCUPIED(1))) {
+            Move move;
+            move.piece = 'k';
+            move.from = SQUARE(initial_row, 4);
+            move.to = SQUARE(initial_row, 2);
+            move.queenside_castling = true;
+            moves.push_back(move);
+          }
+
+  #undef OCCUPIED_OR_ATTACKED
+  #undef OCCUPIED
         }
+      } break;
 
-#undef OCCUPIED_OR_ATTACKED
-#undef OCCUPIED
-      }
-    } break;
+      case 'r': {
+        ray_moves<ROOK_RAY_N, ROOK_RAY_E, ROOK_RAY_S, ROOK_RAY_W>(moves, p, moving, opponent, opponent_capturable);
+      } break;
+      case 'b': {
+        ray_moves<BISHOP_RAY_NE, BISHOP_RAY_NW, BISHOP_RAY_SE, BISHOP_RAY_SW>(moves, p, moving, opponent, opponent_capturable);
+      } break;
+      case 'q': {
+        ray_moves<ROOK_RAY_N, ROOK_RAY_E, ROOK_RAY_S, ROOK_RAY_W>(moves, p, moving, opponent, opponent_capturable);
+        ray_moves<BISHOP_RAY_NE, BISHOP_RAY_NW, BISHOP_RAY_SE, BISHOP_RAY_SW>(moves, p, moving, opponent, opponent_capturable);
+      } break;
+      case 'p': {
 
-    case 'r': {
-      ROOK_MOVES('r');
-    } break;
-    case 'b': {
-      BISHOP_MOVES('b');
-    } break;
-    case 'q': {
-      ROOK_MOVES('q');
-      BISHOP_MOVES('q');
-    } break;
-    case 'p': {
-      int dest_row = from_row + pawn_direction;
-      square_t dest_square = SQUARE(dest_row, from_col);
-      uint64_t dest = BBOARD(dest_square);
+        int dest_row = from_row + pawn_direction;
+        square_t dest_square = SQUARE(dest_row, from_col);
+        uint64_t dest = BBOARD(dest_square);
 
-      /*non capture moves*/
-      if (dest & ~occupied) {
+        /*non capture moves*/
+        if (dest & ~occupied) {
 
-        /* one step forward */
-        if (dest_row != promotion_row) {
-          Move move;
-          move.piece = 'p';
-          move.from = p->square;
-          move.to = dest_square;
-          moves.push_back(move);
-        } else {
-          /* promotion */
-          for (int i = 0; i < 4; i += 1) {
+          /* one step forward */
+          if (dest_row != promotion_row) {
             Move move;
             move.piece = 'p';
-            move.promotion = "qnrb"[i];
             move.from = p->square;
             move.to = dest_square;
             moves.push_back(move);
+          } else {
+            /* promotion */
+            for (int i = 0; i < 4; i += 1) {
+              Move move;
+              move.piece = 'p';
+              move.promotion = "qnrb"[i];
+              move.from = p->square;
+              move.to = dest_square;
+              moves.push_back(move);
+            }
+          }
+
+          /* initial move : 2 steps forward */
+          if (from_row == pawn_row) {
+            int jump_dest_row = from_row + pawn_direction * 2;
+            square_t jump_dest = SQUARE(jump_dest_row, from_col);
+            dest = BBOARD(jump_dest);
+            if (dest & ~occupied) {
+              Move move;
+              move.piece = 'p';
+              move.pawn_jumstart = true;
+              move.from = p->square;
+              move.to = jump_dest;
+              moves.push_back(move);
+            }
           }
         }
 
-        /* initial move : 2 steps forward */
-        if (from_row == pawn_row) {
-          int jump_dest_row = from_row + pawn_direction * 2;
-          square_t jump_dest = SQUARE(jump_dest_row, from_col);
-          dest = BBOARD(jump_dest);
-          if (dest & ~occupied) {
-            Move move;
-            move.piece = 'p';
-            move.pawn_jumstart = true;
-            move.from = p->square;
-            move.to = jump_dest;
-            moves.push_back(move);
+        /* capture left */
+        if (from_col > 0) {
+          if(white_to_move) {
+            pawn_capture<1,-1>(moves, p, opponent, opponent_capturable, enpassant, dest_row);
+          } else {
+            pawn_capture<-1,-1>(moves, p, opponent, opponent_capturable, enpassant, dest_row);
+          }
+        }
+
+        /* capture right */
+        if (from_col < 7) {
+          if(white_to_move) {
+            pawn_capture<1,1>(moves, p, opponent, opponent_capturable, enpassant, dest_row);
+          } else {
+            pawn_capture<-1,1>(moves, p, opponent, opponent_capturable, enpassant, dest_row);
           }
         }
       }
-
-#define PAWN_CAPTURE(dir)                                                      \
-  do {                                                                         \
-    dest_square = SQUARE(from_row + pawn_direction, from_col + (dir));         \
-    dest = BBOARD(dest_square);                                                \
-    if (dest & (opponent_capturable | enpassant)) {                            \
-      if (dest_row != promotion_row) {                                         \
-        Move move;                                                             \
-        move.piece = 'p';                                                      \
-        move.from = p->square;                                                 \
-        move.to = dest_square;                                                 \
-        if (move.enpassant = dest == enpassant) {                              \
-          move.captured = 'p';                                                 \
-        } else {                                                               \
-          move.captured = opponent->piece_at(dest_square);                     \
-        }                                                                      \
-        moves.push_back(move);                                                 \
-      } else {                                                                 \
-        char captured = opponent->piece_at(dest_square);                       \
-        for (int i = 0; i < 4; i += 1) {                                       \
-          Move move;                                                           \
-          move.piece = 'p';                                                    \
-          move.from = p->square;                                               \
-          move.to = dest_square;                                               \
-          move.captured = captured;                                            \
-          move.promotion = "qnrb"[i];                                          \
-          moves.push_back(move);                                               \
-        }                                                                      \
-      }                                                                        \
-    }                                                                          \
-  } while (0)
-
-      /* capture left */
-      if (from_col > 0) {
-        PAWN_CAPTURE(-1);
-      }
-      if (from_col < 7) {
-        PAWN_CAPTURE(1);
-      }
-    } break;
+      break;
     }
+    
     p += 1;
 
   } while (p->name);
 
   return moves;
 
-#undef PAWN_CAPTURE
-#undef ROOK_MOVES
-#undef BISHOP_MOVES
-#undef RAY_MOVES
 }
 
 ////////////////////////////////////////////////////////////////////////////////
