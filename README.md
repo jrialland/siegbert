@@ -21,15 +21,17 @@ Existing features :
     * [Make](https://www.chessprogramming.org/Make_Move)/[Unmake](https://www.chessprogramming.org/Unmake_Move) using the [memento pattern](https://en.wikipedia.org/wiki/Memento_pattern)
     * perft-validated & heavily tested
 
-* IA :
-    * minimax with alpha-beta pruning w/ [transposition table](https://www.chessprogramming.org/Transposition_Table) (needs improvement)
+* Minimax :
+    * detects threefold repetitions (by tracking the last 4 hashes)
+    * multithreaded search
+    * minimax with alpha-beta pruning w/ [transposition table](https://www.chessprogramming.org/Transposition_Table) ( ttable needs improvements)
     * (for the moment) dummy moves sorting
-
+    
 TODO:
 -----
 * 
     * improve compatibility with UCI
-    * multi-threading
+    * ~multi-threading~
     * Embedded openings books
     * nn-based moves sorter
     * better logging
