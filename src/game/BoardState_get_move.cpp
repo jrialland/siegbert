@@ -12,7 +12,7 @@ using namespace boost;
 
 namespace siegbert {
 
-const regex re_xboard("^([a-h][1-8])([a-h][1-8])(nbrqNBRQ])?$");
+const regex re_xboard("^([a-h][1-8])([a-h][1-8])([nbrq])?$");
 
 std::function<bool(const Move &)>
 p_and(std::function<bool(const Move &)> left,
@@ -83,10 +83,10 @@ Move BoardState::get_move(const string &san_) const {
     predicate = p_from_square_matches(from);
 
     string to;
-    from.assign(m[2].first, m[2].second);
+    to.assign(m[2].first, m[2].second);
     predicate = p_and(predicate, p_to_square_matches(to));
 
-    if (m.length() == 4) {
+    if (m.length() == 5) {
       char prom = *(m[3].first);
       predicate = p_and(predicate, p_promotion_matches(tolower(prom)));
     }
