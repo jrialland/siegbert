@@ -39,6 +39,9 @@ string Move::to_str() const {
   ss << "12345678"[ROW(from)];
   ss << "abcdefgh"[COL(to)];
   ss << "12345678"[ROW(to)];
+  if(promotion) {
+    ss << promotion;
+  }
   return ss.str();
 }
 
