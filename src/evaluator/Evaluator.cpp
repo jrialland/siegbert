@@ -11,8 +11,9 @@ using namespace std;
 
 namespace siegbert {
 
-Evaluator::Evaluator()
-    : boardstate(BoardState::initial()), transposition_table(3, 102400) {
+Evaluator::Evaluator() :
+  thread_pool(),
+  transposition_table(3, 102400) {
   scorer = new Berliner1999Scorer();
   moves_sorter = new ShuffleMovesSorter();
 }
@@ -22,22 +23,39 @@ Evaluator::~Evaluator() {
   delete moves_sorter;
 }
 
-int Evaluator::minimax(int depth, int alpha, int beta, bool maximizing) {
+int Evaluator::minimax(
+  BoardState& boardstate,
+  int depth,
+  int alpha,
+  int beta,
+  bool maximizing,
+  uint64_t z_pos4,
+  uint64_t z_pos3,
+  uint64_t z_pos2,
+  uint64_t z_pos1
+) {
 
-  // evaluate the score of a leaf node
+  // evaluate the score if a leaf node
   if (depth == 0) {
     return scorer->score(boardstate);
   }
 
   auto memento = boardstate.memento();
+
+  // 3 fold repetition
+  if(z_pos2 == z_pos4 && memento.z == z_pos2) {
+    return 0;
+  }
+
+  // draw (50 non-pawn, non-capture moves)
+  if (memento.halfmoves == 100) {
+    return 0;
+  }
+
+  // if the position is already in the transposition table, return its score
   boost::optional<known_score_t> hit = transposition_table.get(memento.z);
   if (hit.is_initialized() && hit->depth <= depth) {
     return hit->score;
-  }
-
-  // draw (50 moves rule)
-  if (memento.halfmoves == 100) {
-    return 0;
   }
 
   std::vector<Move> moves = boardstate.generate_moves();
@@ -45,11 +63,12 @@ int Evaluator::minimax(int depth, int alpha, int beta, bool maximizing) {
   // cannot play further
   if (moves.empty()) {
     int final_score = 0;
+
+    // we are checkmated
     if (boardstate.is_check()) {
       final_score = maximizing ? INT_MIN : INT_MAX;
-    }
+    } // else this is a pat
     transposition_table.set(memento.z, depth, final_score, 0);
-
     return final_score;
   }
 
@@ -60,7 +79,20 @@ int Evaluator::minimax(int depth, int alpha, int beta, bool maximizing) {
     score = INT_MIN;
     for (auto move : moves) {
       if (boardstate.make_move(move)) {
-        score = std::max(score, minimax(depth - 1, alpha, beta, false));
+        score = std::max(
+          score, 
+          minimax(
+            boardstate,
+            depth - 1,
+            alpha,
+            beta,
+            false,
+            z_pos3,
+            z_pos2,
+            z_pos1,
+            memento.z
+          )
+        );
         alpha = std::max(alpha, score);
         boardstate.unmake_move(move, memento);
         if (alpha >= beta) {
@@ -72,7 +104,20 @@ int Evaluator::minimax(int depth, int alpha, int beta, bool maximizing) {
     score = INT_MAX;
     for (auto move : moves) {
       if (boardstate.make_move(move)) {
-        score = std::min(score, minimax(depth - 1, alpha, beta, true));
+        score = std::max(
+          score, 
+          minimax(
+            boardstate,
+            depth - 1,
+            alpha,
+            beta,
+            true,
+            z_pos3,
+            z_pos2,
+            z_pos1,
+            memento.z
+          )
+        );
         beta = std::min(beta, score);
         boardstate.unmake_move(move, memento);
         if (beta <= alpha) {
@@ -85,60 +130,74 @@ int Evaluator::minimax(int depth, int alpha, int beta, bool maximizing) {
   return score;
 }
 
+struct Eval {
+  Move move;
+  int score;
+};
+
 std::string Evaluator::eval(BoardState &b, int depth) {
-  boardstate = b;
 
-  std::function<bool(int, int)> compare;
-  int best_score;
-  Move best_move;
+  vector<Future<Eval>*> evals;
+  vector<Move> moves = b.generate_moves();
 
-  bool maximizing = boardstate.is_white_to_move();
-
-  // maximizing for white, minimizing for black
-  if (maximizing) {
-    compare = [](int a, int b) { return b > a; };
-  } else {
-    compare = [](int a, int b) { return a < b; };
+  if(moves.empty()) {
+    if(b.is_check()) {
+      return b.is_white_to_move() ? "0/1":"1/0";
+    } else {
+      return "1/2-1/2";
+    }
   }
 
-  // store the data for unmake_move()
-  auto memento = boardstate.memento();
-
-  std::vector<Move> moves = boardstate.generate_moves();
   moves_sorter->sort(moves);
 
-  // assume that the best move is the first move
-  auto it = moves.begin();
-  auto end = moves.end();
-  while (!boardstate.make_move(*it)) {
-    it++;
-  }
-  best_move = *it;
-  best_score = minimax(depth - 1, INT_MIN, INT_MAX, !maximizing);
-  boardstate.unmake_move(best_move, memento);
+  Move bestMove;
+  int bestScore = b.is_white_to_move() ? INT_MIN : INT_MAX;
 
-  // for each other moves, do a minimax on it
-  while (it != end) {
-    if (boardstate.make_move(*it)) {
-      int score = minimax(depth - 1, INT_MIN, INT_MAX, !maximizing);
-      transposition_table.set(memento.z, depth, score, 0);
-      if (compare(best_score, score)) {
-        best_score = score;
-        best_move = *it;
-      }
-      boardstate.unmake_move(*it, memento);
+  Memento memento = b.memento();
+  uint64_t z = memento.z;
+
+  for(const Move& move : moves) {
+    if(b.make_move(move)) {
+      bestMove = move; // for the moment
+
+      std::function<Eval(void)> evalFn = [this, b, z, depth, &move](void) -> Eval {
+        Eval eval;
+        eval.move = move;
+        BoardState root(b);
+        eval.score = minimax(
+            root,
+            depth,
+            INT_MIN,
+            INT_MAX,
+            root.is_white_to_move(),
+            4,
+            3,
+            2,
+            z
+        );
+        return eval;
+      };
+      evals.push_back(thread_pool.submit(evalFn));
+      b.unmake_move(move, memento);
     }
-    it++;
   }
 
-  /*
-  std::cout << "size " << transposition_table.size();
-  std::cout << " hits " << transposition_table.hits();
-  std::cout << " missed " << transposition_table.missed();
-  std::cout << endl;
-  */
+  std::function<bool(int, int)> compare;
+  if(b.is_white_to_move()) {
+    compare = [](int a, int b) -> bool { return a > b; };
+  } else {
+    compare = [](int a, int b) -> bool { return a < b; };
+  }
 
-  return best_move.to_str();
+  for(auto f : evals) {
+    Eval e = f->get();
+    if(compare(e.score, bestScore)) {
+      bestScore = e.score;
+      bestMove = e.move;
+    }
+    delete f;
+  }
+  return bestMove.to_str();
 }
 
-} // namespace siegbert
+}
