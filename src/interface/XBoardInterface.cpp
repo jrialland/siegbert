@@ -25,7 +25,10 @@ XBoardInterface::XBoardInterface(EngineIO *io) {
     engineIO->send("feature done=1");
   };
 
-  handlers["force"] = [this] { force = true; };
+  handlers["force"] = [this] {
+    boardstate = BoardState::initial();
+    force = true;
+  };
 
   handlers["new"] = [this] { boardstate = BoardState::initial(); };
 
@@ -53,7 +56,7 @@ XBoardInterface::XBoardInterface(EngineIO *io) {
   handlers["black"] = [this] { boardstate.set_white_to_move(false); };
 }
 
-static const boost::regex re_move("^[a-h][1-8][a-h][1-8][kbrq]?$");
+static const boost::regex re_move("^[a-h][1-8][a-h][1-8][nbrq]?$");
 static const boost::regex re_ping("^ping ([0-9a-z]+)$");
 static const boost::regex re_setboard("^setboard (.+)$");
 
@@ -93,7 +96,8 @@ void XBoardInterface::receive(const std::string &line) {
 }
 
 void XBoardInterface::play() {
-  std::string move = evaluator.eval(boardstate, 7);
+  std::string move = evaluator.eval(boardstate, 5);
+  std::cout << move << std::endl;
   engineIO->send("move " + move);
   boardstate.make_move(boardstate.get_move(move));
 }
