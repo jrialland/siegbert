@@ -8,6 +8,35 @@
 using namespace std;
 using namespace siegbert;
 
+TEST_CASE("xboard", "[BoardState][smoke_test]") {
+  auto b = BoardState::initial();
+  Move m = b.get_move("e2e4");
+  REQUIRE(m.from == SQUARE(1,4));
+  REQUIRE(m.to == SQUARE(3,4));
+  REQUIRE(m.piece == 'p');
+  REQUIRE(m.captured == '\0');
+  REQUIRE(m.enpassant == false);
+  REQUIRE(m.pawn_jumstart == true);
+  REQUIRE(m.kingside_castling == false);
+  REQUIRE(m.queenside_castling == false);
+  REQUIRE(m.promotion == '\0');
+}
+
+TEST_CASE("xboard promotion", "[BoardState][smoke_test]") {
+  auto b = BoardState::from_fen("2r3k1/8/1p5B/pP1P2P1/PbN4p/7P/1R1PR1p1/8 b - - 0 1");
+  bool haspawn = false;
+  for(auto &move : b.generate_moves()) {
+    if(move.from == SQUARE(1, 6)) {
+      REQUIRE(move.piece == 'p');
+      REQUIRE(move.to == SQUARE(0, 6));
+      REQUIRE(move.promotion != '\0');
+      haspawn = true;
+    }
+  }
+  REQUIRE(haspawn);
+  Move m = b.get_move("g2g1n");
+}
+
 TEST_CASE("king legal moves", "[BoardState][smoke_test]") {
   auto b = BoardState::from_fen("7q/7K/8/8/8/8/8/k7 w - - 0 1");
   BoardState saved(b);
@@ -142,11 +171,17 @@ ifstream get_file(const string &basename) {
 }
 
 void replay(const string &basename) {
+  auto start = chrono::steady_clock::now();
   ifstream f = get_file(basename);
   auto games = Pgn::read(f, basename);
+  int moves = 0;
   for (auto &game : games) {
+    moves += game.moves.size();
     replay_moves(game, false);
   }
+  auto end = chrono::steady_clock::now();
+  auto ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+  cout << basename << " : " << moves << " moves, " <<  (moves*1000.0 / ms ) << " moves per sec" << endl;
 }
 
 TEST_CASE("VachierLagrave - all", "[BoardState][smoke_test]") {
@@ -170,8 +205,10 @@ void replay_and_unmake(const Pgn &pgn) {
     if (b.make_move(move)) {
 
       b.unmake_move(move, memento);
-      std::string newfen = b.to_fen();
+      
+      REQUIRE(b.get_zobrist_hash() == memento.z);
 
+      std::string newfen = b.to_fen();
       REQUIRE_THAT(newfen, Catch::Equals(fens.back()));
       b.make_move(move);
       fens.push_back(b.to_fen());
@@ -182,7 +219,14 @@ void replay_and_unmake(const Pgn &pgn) {
 TEST_CASE("replay_and_unmake", "[BoardState][make_unmake]") {
   ifstream f = get_file("Carlsen.pgn");
   auto games = Pgn::read(f, "Carlsen.pgn");
+  int moves = 0;
+  auto start = chrono::steady_clock::now();
+
   for (auto &game : games) {
+    moves += game.moves.size();
     replay_and_unmake(game);
   }
+  auto end = chrono::steady_clock::now();
+  auto ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+  cout << "make/unmake (Carlsen.pgn) " << moves << " moves, " <<  (moves*1000.0 / ms ) << " moves per sec" << endl;
 }
