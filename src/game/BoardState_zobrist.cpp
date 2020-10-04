@@ -1,6 +1,7 @@
 
 
 #include "game/BoardState.hpp"
+#include "game/BoardState_constants.hpp"
 
 /* The seed that is used for polyglot zobrist hashes */
 static const uint64_t zobrist_random64[781] = {
@@ -287,6 +288,8 @@ static inline int piece_value(char piece) {
 }
 
 void BoardState::recompute_z() {
+
+  // pieces
   uint64_t p = 0;
   const Piece *pp;
   pp = white.pieces;
@@ -301,6 +304,7 @@ void BoardState::recompute_z() {
     pp += 1;
   }
 
+  //castling rights
   uint64_t c = 0;
   if (white_castling.kingside) {
     c ^= zobrist_random64[768];
@@ -315,14 +319,24 @@ void BoardState::recompute_z() {
     c ^= zobrist_random64[771];
   }
 
+  // enpassant
   uint64_t e = 0;
+  // we consider the enpassant square only if a real capture could occur
   if (enpassant) {
-    e = zobrist_random64[772 + COL(square_for_bboard(enpassant))];
+    square_t epsquare = square_for_bboard(enpassant);
+    if(
+          (!white_to_move && (WHITE_PAWN_CAPTURES[OFFSET(epsquare)] & black.pawns))
+      ||  (white_to_move && (BLACK_PAWN_CAPTURES[OFFSET(epsquare)] & white.pawns))
+    ) {
+        e = zobrist_random64[772 + COL(epsquare)]; 
+    }
   }
-
+  
+  // turn
   uint64_t t = white_to_move ? zobrist_random64[780] : 0;
 
   z = p ^ c ^ e ^ t;
+
 }
 
 void BoardState::evolve_z(const Move &move, const Castling &previous_castling,
@@ -374,18 +388,18 @@ void BoardState::evolve_z(const Move &move, const Castling &previous_castling,
 
   // castling
   if (white_to_move) {
+    if (black_castling.kingside != previous_castling.kingside) {
+      z ^= zobrist_random64[770];
+    }
+    if (black_castling.queenside != previous_castling.queenside) {
+      z ^= zobrist_random64[771];
+    }
+  } else {
     if (white_castling.kingside != previous_castling.kingside) {
       z ^= zobrist_random64[768];
     }
     if (white_castling.queenside != previous_castling.queenside) {
       z ^= zobrist_random64[769];
-    }
-  } else {
-    if (white_castling.kingside != previous_castling.kingside) {
-      z ^= zobrist_random64[770];
-    }
-    if (white_castling.queenside != previous_castling.queenside) {
-      z ^= zobrist_random64[771];
     }
   }
 
@@ -399,8 +413,15 @@ void BoardState::evolve_z(const Move &move, const Castling &previous_castling,
   /*
    * enpassant : xor with the new enpassant value
    */
+  // we consider the enpassant square only if a real capture could occur
   if (enpassant) {
-    z ^= zobrist_random64[772 + COL(square_for_bboard(enpassant))];
+    square_t epsquare = square_for_bboard(enpassant);
+    if(
+          (!white_to_move && (WHITE_PAWN_CAPTURES[OFFSET(epsquare)] & black.pawns))
+      ||  (white_to_move && (BLACK_PAWN_CAPTURES[OFFSET(epsquare)] & white.pawns))
+    ) {
+        z ^= zobrist_random64[772 + COL(epsquare)]; 
+    }
   }
 
   /* turn : white becomes black (even xor count leads to 0)

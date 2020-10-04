@@ -29,7 +29,7 @@ State::State()
 
 Move::Move()
     : from(0), to(0), piece(0), captured(0), promotion(0), enpassant(0),
-      kingside_castling(false), queenside_castling(false),
+      kingside_castling(false), queenside_castling(false), weight(0),
       pawn_jumstart(false) {}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -43,6 +43,91 @@ string Move::to_str() const {
     ss << promotion;
   }
   return ss.str();
+}
+
+/*
+"move" is a bit field with the following meaning (bit 0 is the least significant bit)
+
+bits                meaning
+===================================
+0,1,2               to file
+3,4,5               to row
+6,7,8               from file
+9,10,11             from row
+12,13,14            promotion piece
+
+"promotion piece" is encoded as follows
+
+none       0
+knight     1
+bishop     2
+rook       3
+queen      4
+
+If the move is "0" (a1a1) then it should simply be ignored. It seems to me that in that case one might as well delete the entry from the book.
+Castling moves
+Castling moves are represented somewhat unconventially as follows (this convention is related to Chess960, see below).
+
+white short      e1h1
+white long       e1a1
+black short      e8h8
+black long       e8a8
+*/
+uint16_t Move::to_polyglot(bool white) const {
+  
+  uint16_t to_file;
+  uint16_t to_row;
+  uint16_t from_file;
+  uint16_t from_row;
+  uint16_t prom = 0;
+
+  if(kingside_castling) {
+    if(white) {
+      // e1h1
+      from_file = 4;
+      from_row = 0;
+      to_file = 7;
+      to_row = 0;
+    } else {
+      // e8h8
+      from_file = 4;
+      from_row = 7;
+      to_file = 7;
+      to_row = 7;
+    }
+  }
+  
+  else if(queenside_castling) {
+    if(white) {
+      // e1a1
+      from_file = 4;
+      from_row = 0;
+      to_file = 0;
+      to_row = 0;
+    } else {
+      // e8a8
+      from_file = 4;
+      from_row = 7;
+      to_file = 0;
+      to_row = 7;
+    }
+  }
+  
+  else {
+    to_file = COL(to);//0,1,2
+    to_row= ROW(to) << 3;
+    from_file = COL(from) << 6;
+    from_row = ROW(from) << 9;
+    prom = 0;
+    switch(promotion) {
+        case 'n': prom = 1 << 12; break; 
+        case 'b': prom = 2 << 12; break;
+        case 'r': prom = 3 << 12; break;
+        case 'q': prom = 4 << 12; break;
+    }
+  }
+
+  return to_file | to_row | from_file | from_row | prom;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -558,16 +643,36 @@ bool BoardState::make_move(const Move &move) {
 
     Castling previous_castling;
     int previous_halfmoves = halfmoves;
-    uint64_t previous_enpassant = enpassant;
+    uint64_t previous_enpassant = enpassant; // used to incremental zobrist hash computation
 
     enpassant = moveresult.enpassant;
     if (white_to_move) {
       previous_castling = white_castling;
       white_castling = moveresult.castling_rights;
+      
+      // we should not consider the enpassant for zobrist
+      // hash computation if it was not possible to actually do the enpassant capture
+      if(previous_enpassant) {
+        square_t ep = square_for_bboard(previous_enpassant);
+        if(!(BLACK_PAWN_CAPTURES[OFFSET(ep)] & saved_white.pawns)) {
+          previous_enpassant = 0;
+        }
+      }
+      
       white_to_move = false;
+
     } else {
       previous_castling = black_castling;
       black_castling = moveresult.castling_rights;
+
+      // we should not consider the enpassant for zobrist
+      // hash computation if it was not possible to actually do the enpassant capture
+      if(previous_enpassant) {
+        square_t ep = square_for_bboard(previous_enpassant);
+        if(!(WHITE_PAWN_CAPTURES[OFFSET(ep)] & saved_black.pawns)) {
+          previous_enpassant = 0;
+        }
+      }
       white_to_move = true;
       moves += 1;
     }
@@ -578,7 +683,12 @@ bool BoardState::make_move(const Move &move) {
       halfmoves += 1;
     }
 
-    evolve_z(move, previous_castling, previous_halfmoves, previous_enpassant);
+    evolve_z(
+      move,
+      previous_castling,
+      previous_halfmoves,
+      previous_enpassant
+    );
 
     return true;
   }
