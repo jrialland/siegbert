@@ -12,7 +12,7 @@ typedef uint8_t square_t;
 #define COL(S) (((square_t)(S)) & 7)
 #define OFFSET(S) ((S + (S & 7)) >> 1)
 #define BBOARD(S) (((uint64_t)1) << OFFSET(S))
-
+#define NAME(S) (std::string({(char)('a'+COL(S))})+std::to_string(1+ROW(S)))
 namespace siegbert {
 
 struct Move {
@@ -29,10 +29,14 @@ public:
   bool kingside_castling;
   bool queenside_castling;
   bool pawn_jumstart;
-
+  int weight;
+  
   std::string to_str() const;
 
   std::string to_json() const;
+
+  uint16_t to_polyglot(bool white) const; 
+
 };
 
 std::ostream &operator<<(std::ostream &os, const Move &move);
