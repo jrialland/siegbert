@@ -13,13 +13,11 @@ public:
 };
 
 class NullMovesSorter : public MovesSorter {
-
 public:
   void sort(std::vector<Move> &moves) const override;
 };
 
 class ShuffleMovesSorter : public MovesSorter {
-
 public:
   void sort(std::vector<Move> &moves) const override;
 };
