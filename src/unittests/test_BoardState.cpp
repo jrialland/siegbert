@@ -2,6 +2,7 @@
 
 #include "game/BoardState.hpp"
 #include "pgn/Pgn.hpp"
+#include "logging/Logging.hpp"
 
 #include <fstream>
 
@@ -189,18 +190,12 @@ TEST_CASE("castling white queenside", "[BoardState][smoke_test]") {
   REQUIRE(has_castling);
 }
 
-void replay_moves(const Pgn &game, bool verbose) {
+void replay_moves(const Pgn &game) {
   auto b = BoardState::initial();
   for (auto &m : game.moves) {
-    if (verbose) {
-      cout << "------------" << endl;
-      cout << b.to_fen() << '\t' << m << endl;
-      cout << b << endl;
-    }
+    //LOG_TRACE(b.to_fen(), "\t", m);
     Move move = b.get_move(m);
-    if (verbose) {
-      cout << m << " " << move.to_json() << endl;
-    }
+    //LOG_TRACE(m, " ", move.to_json());
     REQUIRE(b.make_move(move));
   }
 }
@@ -222,11 +217,11 @@ void replay(const string &basename) {
   int moves = 0;
   for (auto &game : games) {
     moves += game.moves.size();
-    replay_moves(game, false);
+    replay_moves(game);
   }
   auto end = chrono::steady_clock::now();
   auto ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-  cout << basename << " : " << moves << " moves, " <<  (moves*1000.0 / ms ) << " moves per sec" << endl;
+  LOG_INFO(basename, ":", moves, " moves,", moves*1000.0 / ms, " moves per sec");
 }
 
 TEST_CASE("VachierLagrave - all", "[BoardState][smoke_test]") {
@@ -273,5 +268,5 @@ TEST_CASE("replay_and_unmake", "[BoardState][make_unmake]") {
   }
   auto end = chrono::steady_clock::now();
   auto ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-  cout << "make/unmake (Carlsen.pgn) " << moves << " moves, " <<  (moves*1000.0 / ms ) << " moves per sec" << endl;
+  LOG_INFO("make/unmake (Carlsen.pgn) :", moves, "moves,", moves*1000.0 / ms , "moves per sec");
 }

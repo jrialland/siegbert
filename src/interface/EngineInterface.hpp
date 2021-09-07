@@ -13,6 +13,7 @@ class EngineIO;
 class EngineInterface {
 
 protected:
+
   BoardState boardstate = BoardState::initial();
 
   Evaluator evaluator;

@@ -117,6 +117,7 @@ class ThreadPool {
     public:
 
         ThreadPool(int n_threads=0);
+        
         ~ThreadPool();
 
         template<typename T>

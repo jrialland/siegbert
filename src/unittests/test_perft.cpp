@@ -1,6 +1,7 @@
 #include <catch.hpp>
 
 #include "game/BoardState.hpp"
+#include "logging/Logging.hpp"
 
 using namespace siegbert;
 
@@ -20,43 +21,41 @@ unsigned long perft(BoardState &boardstate, int depth) {
   return nodes;
 }
 
+#define TEST_PERFT(level, expected) do {\
+  auto b = BoardState::initial(); \
+  unsigned long p = perft(b, level); \
+  LOG_DEBUG("perft", level, "==", p); \
+  REQUIRE(p == expected); \
+} while(0)
+
 TEST_CASE("perft 0", "[perft][smoke_test]") {
-  auto b = BoardState::initial();
-  REQUIRE(perft(b, 0) == 1);
+  TEST_PERFT(0, 1);
 }
 
 TEST_CASE("perft 1", "[perft][smoke_test]") {
-  auto b = BoardState::initial();
-  REQUIRE(perft(b, 1) == 20);
+  TEST_PERFT(1, 20);
 }
 
 TEST_CASE("perft 2", "[perft][smoke_test]") {
-  auto b = BoardState::initial();
-  REQUIRE(perft(b, 2) == 400);
+  TEST_PERFT(2, 400);
 }
 
 TEST_CASE("perft 3", "[perft]") {
-  auto b = BoardState::initial();
-  REQUIRE(perft(b, 3) == 8902);
+  TEST_PERFT(3, 8902);
 }
 
 TEST_CASE("perft 4", "[perft]") {
-  auto b = BoardState::initial();
-  REQUIRE(perft(b, 4) == 197281);
+  TEST_PERFT(4, 197281);
+}
+
+TEST_CASE("perft 5", "[perft]") {
+  TEST_PERFT(5, 4865609);
 }
 
 /*
-TEST_CASE("perft 5", "[perft]") {
-    auto b = BoardState::initial();
-    REQUIRE(perft(b, 5) == 4865609);
-}
-
-
 TEST_CASE("perft 6", "[perft]") {
-    auto b = BoardState::initial();
-    REQUIRE(perft(b, 6) == 119060324);
+  TEST_PERFT(6, 119060324);
 }
-
 
 TEST_CASE("perft 7", "[perft]") {
     auto b = BoardState::initial();

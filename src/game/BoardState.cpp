@@ -440,7 +440,7 @@ BoardState BoardState::from_fen(const string &fen) {
   }
 
   /* positions */
-  string positions = items.at(0);
+  string positions = items[0];
   int row = 7;
   int col = 0;
   for (int i = 0, len = positions.length(); i < len; i += 1) {
@@ -1081,6 +1081,11 @@ vector<Move> BoardState::generate_moves() const {
   } while (p->name);
 
   return moves;
+}
+
+bool BoardState::is_legal(const Move& move) const {
+  BoardState b(*this);
+  return b.make_move(move);
 }
 
 } // namespace siegbert

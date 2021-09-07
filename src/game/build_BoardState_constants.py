@@ -33,7 +33,7 @@ def king_moves(row, col):
             if (drow, dcol) != (0,0) and is_valid(row+drow, col+dcol):
                 yield (row+drow, col+dcol)
 
-def bishop_ray(row, col, drow, dcol):
+def ray(row, col, drow, dcol):
     row = row+drow
     col = col+dcol
     while is_valid(row, col):
@@ -41,15 +41,15 @@ def bishop_ray(row, col, drow, dcol):
         row = row+drow
         col = col+dcol
 
-def bishop_ray_ne(row, col) : yield from bishop_ray(row, col,  1 ,  1)
-def bishop_ray_se(row, col) : yield from bishop_ray(row, col, -1 ,  1)
-def bishop_ray_nw(row, col) : yield from bishop_ray(row, col,  1 , -1)
-def bishop_ray_sw(row, col) : yield from bishop_ray(row, col, -1 , -1)
+def bishop_ray_ne(row, col) : yield from ray(row, col,  1 ,  1)
+def bishop_ray_se(row, col) : yield from ray(row, col, -1 ,  1)
+def bishop_ray_nw(row, col) : yield from ray(row, col,  1 , -1)
+def bishop_ray_sw(row, col) : yield from ray(row, col, -1 , -1)
 
-def rook_ray_n(row, col) : yield from bishop_ray(row, col,  1,  0)
-def rook_ray_s(row, col) : yield from bishop_ray(row, col, -1,  0)
-def rook_ray_e(row, col) : yield from bishop_ray(row, col,  0,  1)
-def rook_ray_w(row, col) : yield from bishop_ray(row, col,  0, -1)
+def rook_ray_n(row, col) : yield from ray(row, col,  1,  0)
+def rook_ray_s(row, col) : yield from ray(row, col, -1,  0)
+def rook_ray_e(row, col) : yield from ray(row, col,  0,  1)
+def rook_ray_w(row, col) : yield from ray(row, col,  0, -1)
 
 
 class Declaration:
@@ -110,7 +110,9 @@ declarations = [
     make_list_of_moves('ROOK_RAY_W', rook_ray_w),
 ]
 
-h_pre = """
+generated_file_disclaimer = "// This is file is generated automatically, should not be edited manually\n"
+
+h_pre = generated_file_disclaimer + """
 #ifndef BoardState_constants_HPP
 #define BoardState_constants_HPP
 
@@ -126,18 +128,18 @@ struct bboard_and_square_t {
 """
 
 h_post = """
-}
+} // end-of extern "C"
 
 #endif
 """
 
-cpp_pre = """
+cpp_pre = generated_file_disclaimer + """
 #include "BoardState_constants.hpp"
 extern "C" {
 """
 
 cpp_post = """
-}
+} // end-of extern "C"
 """
 
 if __name__ == '__main__':

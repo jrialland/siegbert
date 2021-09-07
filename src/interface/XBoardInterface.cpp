@@ -96,10 +96,13 @@ void XBoardInterface::receive(const std::string &line) {
 }
 
 void XBoardInterface::play() {
-  std::string move = evaluator.eval(boardstate, 5);
-  std::cout << move << std::endl;
-  engineIO->send("move " + move);
-  boardstate.make_move(boardstate.get_move(move));
+  std::string move = evaluator.eval(boardstate, 3);
+  if(move.compare("resign") == 0) {
+    engineIO->send("resign");
+  } else {
+    engineIO->send("move " + move);
+    boardstate.make_move(boardstate.get_move(move));
+  }
 }
 
 } // namespace siegbert

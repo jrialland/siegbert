@@ -1,61 +1,53 @@
 #ifndef TranspositionTable_HPP
 #define TranspositionTable_HPP
 
-#include <list>
-#include <map>
+#include <cstdint>
 #include <mutex>
-
-#include <boost/optional.hpp>
+#include <map>
+#include <list>
 
 namespace siegbert {
 
-struct known_score_t {
-  int depth;
-  int score;
-  int flag;
-};
+typedef enum flag_t {
+    EXACT,
+    LOWERBOUND,
+    UPPERBOUND
+} flag_t;
 
-#define TT_EXACT 0
-#define TT_LOWERBOUND 1
-#define TT_UPPERBOUND 2
+struct TTableEntry {
+    int depth;
+    flag_t flag;
+    int value;
+};
 
 class TranspositionTable {
-
 private:
-  std::mutex mutex;
+    
+    std::mutex mutex;
 
-  std::map<uint64_t, known_score_t> *insert_current;
+    std::list<std::map<uint64_t, TTableEntry>> hunks;
 
-  std::list<std::map<uint64_t, known_score_t>> hunks;
+    std::list<std::map<uint64_t, TTableEntry>>::iterator iterator;
 
-  std::list<std::map<uint64_t, known_score_t>>::iterator iterator;
+    int max_hunks;
 
-  int n_hunks;
+    int max_entries_per_hunk;
 
-  int hunk_size;
-
-  ulong hits_, miss_;
-
-  void shrink();
+    void shrink();
 
 public:
-  TranspositionTable(int n_hunks = 5, int hunk_size = 10240);
 
-  void reset(int n_hunks = 5, int hunk_size = 1024);
+    TranspositionTable(int max_hunks=10, int max_entries_per_hunk = 10000);
 
-  void set(uint64_t zobrist_hash, int depth, int score, int flag);
+    virtual ~TranspositionTable();
 
-  boost::optional<known_score_t> get(uint64_t zobrist_hash);
+    void put(uint64_t z, const TTableEntry &entry);
 
-  ulong size() const;
+    bool find(uint64_t z, TTableEntry &result);
 
-  ulong hits() const;
-
-  ulong missed() const;
-
-  ulong requested() const;
+    void reset(int max_hunks=10, int max_entries_per_hunk = 10000);
 };
 
-} // namespace siegbert
+}
 
 #endif

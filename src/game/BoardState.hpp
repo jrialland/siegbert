@@ -1,4 +1,4 @@
-
+#pragma once
 #ifndef BoardState_HPP
 #define BoardState_HPP
 
@@ -18,17 +18,27 @@ namespace siegbert {
 struct Move {
 
 public:
+
   Move();
 
   square_t from;
+
   square_t to;
+
   char piece;
+
   char captured;
+
   char promotion;
+
   bool enpassant;
+
   bool kingside_castling;
+
   bool queenside_castling;
+
   bool pawn_jumstart;
+
   int weight;
   
   std::string to_str() const;
@@ -115,6 +125,7 @@ public:
 struct BoardState {
 
 private:
+
   BoardState();
 
   void evolve_z(const Move &move, const Castling &previous_castling,
@@ -123,6 +134,7 @@ private:
   void recompute_z();
 
 public:
+
   uint64_t z; /* zobrist hash */
   uint64_t enpassant;
   Castling white_castling;
@@ -148,6 +160,10 @@ public:
   Move get_move(const std::string &san) const;
 
   bool make_move(const Move &move);
+
+  /** this is quite costly, you should instead check the result of make_move() when possible
+   */
+  bool is_legal(const Move& move) const;
 
   Memento memento() const;
 

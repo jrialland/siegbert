@@ -1,46 +1,29 @@
+#pragma once
 #ifndef Evaluator_HPP
 #define Evaluator_HPP
 
-#include "evaluator/MovesSorter.hpp"
-#include "evaluator/Scorer.hpp"
-#include "evaluator/TranspositionTable.hpp"
+#include <climits>
+#include <string>
+
 #include "game/BoardState.hpp"
-#include "threading/threading.hpp"
+#include "evaluator/Scorer.hpp"
+#include "evaluator/Negamax.hpp"
 
 namespace siegbert {
 class Evaluator {
+private:
 
-protected:
-
-  ThreadPool thread_pool;
-
-  TranspositionTable transposition_table;
-
-  Scorer *scorer;
-
-  MovesSorter *moves_sorter;
-
-  int minimax(
-    BoardState& boardstate,
-    int depth,
-    int alpha,
-    int beta,
-    bool maximizing,
-    uint64_t z_pos4,
-    uint64_t z_pos3,
-    uint64_t z_pos2,
-    uint64_t z_pos1
-    );
+    Negamax negamax;
 
 public:
 
-  Evaluator();
+    Evaluator();
 
-  ~Evaluator();
+    std::string eval(BoardState& boardstate, int depth=10);
 
-  std::string eval(BoardState &boardState, int depth);
+    void reset();
 
-  void stop();
 };
-} // namespace siegbert
+}
+
 #endif

@@ -8,6 +8,6 @@ using namespace siegbert;
 
 TEST_CASE("basic eval", "[Evaluator]") {
   auto b = BoardState::initial();
-  Evaluator ev;
-  std::string move = ev.eval(b, 6);
+  Evaluator evaluator;
+  auto m = evaluator.eval(b, 3);
 }
