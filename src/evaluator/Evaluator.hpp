@@ -5,25 +5,22 @@
 #include <climits>
 #include <string>
 
-#include "game/BoardState.hpp"
-#include "evaluator/Scorer.hpp"
 #include "evaluator/Negamax.hpp"
+#include "evaluator/Scorer.hpp"
+#include "game/BoardState.hpp"
 
 namespace siegbert {
 class Evaluator {
 private:
-
-    Negamax negamax;
+  Negamax negamax;
 
 public:
+  Evaluator();
 
-    Evaluator();
+  std::string eval(BoardState &boardstate, int depth = 10);
 
-    std::string eval(BoardState& boardstate, int depth=10);
-
-    void reset();
-
+  void reset();
 };
-}
+} // namespace siegbert
 
 #endif

@@ -2,7 +2,7 @@
 #define Time_HPP
 
 #include <string>
-    using namespace std;
+using namespace std;
 
 namespace logging {
 
@@ -20,6 +20,6 @@ public:
   /** @return true if the given date is older that nDays ago */
   static bool isNDaysAgo(int nDays, int year, int month, int day);
 };
-}
+} // namespace logging
 
 #endif

@@ -39,14 +39,15 @@ string Move::to_str() const {
   ss << "12345678"[ROW(from)];
   ss << "abcdefgh"[COL(to)];
   ss << "12345678"[ROW(to)];
-  if(promotion) {
+  if (promotion) {
     ss << promotion;
   }
   return ss.str();
 }
 
 /*
-"move" is a bit field with the following meaning (bit 0 is the least significant bit)
+"move" is a bit field with the following meaning (bit 0 is the least significant
+bit)
 
 bits                meaning
 ===================================
@@ -64,9 +65,10 @@ bishop     2
 rook       3
 queen      4
 
-If the move is "0" (a1a1) then it should simply be ignored. It seems to me that in that case one might as well delete the entry from the book.
-Castling moves
-Castling moves are represented somewhat unconventially as follows (this convention is related to Chess960, see below).
+If the move is "0" (a1a1) then it should simply be ignored. It seems to me that
+in that case one might as well delete the entry from the book. Castling moves
+Castling moves are represented somewhat unconventially as follows (this
+convention is related to Chess960, see below).
 
 white short      e1h1
 white long       e1a1
@@ -74,15 +76,15 @@ black short      e8h8
 black long       e8a8
 */
 uint16_t Move::to_polyglot(bool white) const {
-  
+
   uint16_t to_file;
   uint16_t to_row;
   uint16_t from_file;
   uint16_t from_row;
   uint16_t prom = 0;
 
-  if(kingside_castling) {
-    if(white) {
+  if (kingside_castling) {
+    if (white) {
       // e1h1
       from_file = 4;
       from_row = 0;
@@ -96,9 +98,9 @@ uint16_t Move::to_polyglot(bool white) const {
       to_row = 7;
     }
   }
-  
-  else if(queenside_castling) {
-    if(white) {
+
+  else if (queenside_castling) {
+    if (white) {
       // e1a1
       from_file = 4;
       from_row = 0;
@@ -112,18 +114,26 @@ uint16_t Move::to_polyglot(bool white) const {
       to_row = 7;
     }
   }
-  
+
   else {
-    to_file = COL(to);//0,1,2
-    to_row= ROW(to) << 3;
+    to_file = COL(to); // 0,1,2
+    to_row = ROW(to) << 3;
     from_file = COL(from) << 6;
     from_row = ROW(from) << 9;
     prom = 0;
-    switch(promotion) {
-        case 'n': prom = 1 << 12; break; 
-        case 'b': prom = 2 << 12; break;
-        case 'r': prom = 3 << 12; break;
-        case 'q': prom = 4 << 12; break;
+    switch (promotion) {
+    case 'n':
+      prom = 1 << 12;
+      break;
+    case 'b':
+      prom = 2 << 12;
+      break;
+    case 'r':
+      prom = 3 << 12;
+      break;
+    case 'q':
+      prom = 4 << 12;
+      break;
     }
   }
 
@@ -220,25 +230,21 @@ char State::piece_at(square_t square) const {
   if (bboard & presence) {
     if (bboard & pawns) {
       return 'p';
-    }
-    if (bboard & rooks) {
+    } else if (bboard & rooks) {
       return bboard & bishops ? 'q' : 'r';
-    }
-    if (bboard & bishops) {
+    } else if (bboard & bishops) {
       return bboard & rooks ? 'q' : 'b';
-    }
-    if (bboard & knights) {
+    } else if (bboard & knights) {
       return 'n';
     }
-    if (bboard == king) {
-      return 'k';
-    }
+    return 'k';
+  } else {
+    return '\0';
   }
-  return '\0';
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void State::remove_from_piece_list(square_t square) {
+char State::remove_from_piece_list(square_t square) {
   Piece *p = pieces;
   for (int i = 0; i < npieces; i += 1) {
     /* find the item to be removed */
@@ -252,10 +258,12 @@ void State::remove_from_piece_list(square_t square) {
         pieces[i].square = pieces[npieces].square;
       }
       /* remove the last item */
+      char oldpiece = pieces[npieces].name;
       pieces[npieces].name = '\0';
-      break;
+      return oldpiece;
     }
   }
+  return '\0';
 }
 
 template <const bboard_and_square_t ray[64][8]>
@@ -319,7 +327,7 @@ uint64_t State::compute_attack(const State &opponent, bool im_white) const {
 void State::move_piece(char piece, square_t from, square_t to) {
   Piece *p = pieces;
   do {
-    if (p->name == piece && p->square == from) {
+    if (p->square == from) {
       p->square = to;
       const uint64_t mask = ~BBOARD(from);
       const uint64_t bboard_to = BBOARD(to);
@@ -352,13 +360,27 @@ void State::move_piece(char piece, square_t from, square_t to) {
 ////////////////////////////////////////////////////////////////////////////////
 void State::remove_piece(square_t square) {
   const uint64_t mask = ~BBOARD(square);
-  pawns &= mask;
-  rooks &= mask;
-  knights &= mask;
-  bishops &= mask;
-  king &= mask;
   presence &= mask;
-  remove_from_piece_list(square);
+  switch (remove_from_piece_list(square)) {
+  case 'q':
+    rooks &= mask;
+    bishops &= mask;
+    return;
+  case 'p':
+    pawns &= mask;
+    return;
+  case 'r':
+    rooks &= mask;
+    return;
+  case 'n':
+    knights &= mask;
+    return;
+  case 'b':
+    bishops &= mask;
+    return;
+  default:
+    king &= mask;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -643,22 +665,24 @@ bool BoardState::make_move(const Move &move) {
 
     Castling previous_castling;
     int previous_halfmoves = halfmoves;
-    uint64_t previous_enpassant = enpassant; // used to incremental zobrist hash computation
+    uint64_t previous_enpassant =
+        enpassant; // used to incremental zobrist hash computation
 
     enpassant = moveresult.enpassant;
     if (white_to_move) {
       previous_castling = white_castling;
       white_castling = moveresult.castling_rights;
-      
+
       // we should not consider the enpassant for zobrist
-      // hash computation if it was not possible to actually do the enpassant capture
-      if(previous_enpassant) {
+      // hash computation if it was not possible to actually do the enpassant
+      // capture
+      if (previous_enpassant) {
         square_t ep = square_for_bboard(previous_enpassant);
-        if(!(BLACK_PAWN_CAPTURES[OFFSET(ep)] & saved_white.pawns)) {
+        if (!(BLACK_PAWN_CAPTURES[OFFSET(ep)] & saved_white.pawns)) {
           previous_enpassant = 0;
         }
       }
-      
+
       white_to_move = false;
 
     } else {
@@ -666,10 +690,11 @@ bool BoardState::make_move(const Move &move) {
       black_castling = moveresult.castling_rights;
 
       // we should not consider the enpassant for zobrist
-      // hash computation if it was not possible to actually do the enpassant capture
-      if(previous_enpassant) {
+      // hash computation if it was not possible to actually do the enpassant
+      // capture
+      if (previous_enpassant) {
         square_t ep = square_for_bboard(previous_enpassant);
-        if(!(WHITE_PAWN_CAPTURES[OFFSET(ep)] & saved_black.pawns)) {
+        if (!(WHITE_PAWN_CAPTURES[OFFSET(ep)] & saved_black.pawns)) {
           previous_enpassant = 0;
         }
       }
@@ -683,12 +708,7 @@ bool BoardState::make_move(const Move &move) {
       halfmoves += 1;
     }
 
-    evolve_z(
-      move,
-      previous_castling,
-      previous_halfmoves,
-      previous_enpassant
-    );
+    evolve_z(move, previous_castling, previous_halfmoves, previous_enpassant);
 
     return true;
   }
@@ -855,7 +875,7 @@ inline void pawn_capture(vector<Move> &moves, const Piece *piece,
       move.piece = 'p';
       move.from = piece->square;
       move.to = dest_square;
-      if (move.enpassant = dest == enpassant) {
+      if ((move.enpassant = (dest == enpassant))) {
         move.captured = 'p';
       } else {
         move.captured = opponent->piece_at(dest_square);
@@ -1083,7 +1103,7 @@ vector<Move> BoardState::generate_moves() const {
   return moves;
 }
 
-bool BoardState::is_legal(const Move& move) const {
+bool BoardState::is_legal(const Move &move) const {
   BoardState b(*this);
   return b.make_move(move);
 }

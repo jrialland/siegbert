@@ -5,12 +5,9 @@ namespace siegbert {
 
 class Scorer {
 
-    public:
-
-        /** !! signed score ( should return a value <0 if better for black) */
-        int getScore(BoardState& boardState);
-
+public:
+  /** !! signed score ( should return a value <0 if better for black) */
+  int getScore(BoardState &boardState);
 };
 
-
-}
+} // namespace siegbert

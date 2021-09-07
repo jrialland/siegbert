@@ -7,25 +7,22 @@
 using namespace std;
 namespace logging {
 
-	class StreamAppender : public Appender {
+class StreamAppender : public Appender {
 
-	private:
-	  
-	  ostream *stream_;
+private:
+  ostream *stream_;
 
-	  bool tty_;
+  bool tty_;
 
-	  bool deleteAfter_;
+  bool deleteAfter_;
 
-	public:
-	  
-	  StreamAppender(ostream *stream, bool tty = false, bool deleteAfter = false);
+public:
+  StreamAppender(ostream *stream, bool tty = false, bool deleteAfter = false);
 
-	  virtual ~StreamAppender();
+  virtual ~StreamAppender();
 
-	  virtual bool append(const Logger &logger, const LogMessage &message) override;
-	  
-	};
+  virtual bool append(const Logger &logger, const LogMessage &message) override;
+};
 
 } // namespace logging
 

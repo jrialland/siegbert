@@ -13,16 +13,14 @@ using namespace std;
 #define ID_OF_ERROR 5
 #define ID_OF_FATAL 6
 
-
-#define DECL_LOGLEVELS()\
-  DECL_LOGLEVEL(ID_OF_SILENT, Silent)\
-  DECL_LOGLEVEL(ID_OF_TRACE, Trace)\
-  DECL_LOGLEVEL(ID_OF_DEBUG, Debug)\
-  DECL_LOGLEVEL(ID_OF_INFO, Info)\
-  DECL_LOGLEVEL(ID_OF_WARN, Warn)\
-  DECL_LOGLEVEL(ID_OF_ERROR, Error)\
+#define DECL_LOGLEVELS()                                                       \
+  DECL_LOGLEVEL(ID_OF_SILENT, Silent)                                          \
+  DECL_LOGLEVEL(ID_OF_TRACE, Trace)                                            \
+  DECL_LOGLEVEL(ID_OF_DEBUG, Debug)                                            \
+  DECL_LOGLEVEL(ID_OF_INFO, Info)                                              \
+  DECL_LOGLEVEL(ID_OF_WARN, Warn)                                              \
+  DECL_LOGLEVEL(ID_OF_ERROR, Error)                                            \
   DECL_LOGLEVEL(ID_OF_FATAL, Fatal)
-
 
 namespace logging {
 
@@ -53,7 +51,6 @@ public:
   bool operator!=(const LogLevel &other) const;
 
   friend ostream &operator<<(ostream &os, const LogLevel &level);
-  
 };
 
 } // namespace logging

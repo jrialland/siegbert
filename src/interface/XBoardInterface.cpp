@@ -96,8 +96,8 @@ void XBoardInterface::receive(const std::string &line) {
 }
 
 void XBoardInterface::play() {
-  std::string move = evaluator.eval(boardstate, 3);
-  if(move.compare("resign") == 0) {
+  std::string move = evaluator.eval(boardstate, 5);
+  if (move.compare("resign") == 0) {
     engineIO->send("resign");
   } else {
     engineIO->send("move " + move);

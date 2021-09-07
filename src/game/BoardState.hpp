@@ -12,13 +12,13 @@ typedef uint8_t square_t;
 #define COL(S) (((square_t)(S)) & 7)
 #define OFFSET(S) ((S + (S & 7)) >> 1)
 #define BBOARD(S) (((uint64_t)1) << OFFSET(S))
-#define NAME(S) (std::string({(char)('a'+COL(S))})+std::to_string(1+ROW(S)))
+#define NAME(S)                                                                \
+  (std::string({(char)('a' + COL(S))}) + std::to_string(1 + ROW(S)))
 namespace siegbert {
 
 struct Move {
 
 public:
-
   Move();
 
   square_t from;
@@ -40,13 +40,12 @@ public:
   bool pawn_jumstart;
 
   int weight;
-  
+
   std::string to_str() const;
 
   std::string to_json() const;
 
-  uint16_t to_polyglot(bool white) const; 
-
+  uint16_t to_polyglot(bool white) const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Move &move);
@@ -92,7 +91,7 @@ struct StateUpdateResult {
 
 class State {
 private:
-  void remove_from_piece_list(square_t square);
+  char remove_from_piece_list(square_t square);
 
 public:
   State();
@@ -125,7 +124,6 @@ public:
 struct BoardState {
 
 private:
-
   BoardState();
 
   void evolve_z(const Move &move, const Castling &previous_castling,
@@ -134,7 +132,6 @@ private:
   void recompute_z();
 
 public:
-
   uint64_t z; /* zobrist hash */
   uint64_t enpassant;
   Castling white_castling;
@@ -161,9 +158,10 @@ public:
 
   bool make_move(const Move &move);
 
-  /** this is quite costly, you should instead check the result of make_move() when possible
+  /** this is quite costly, you should instead check the result of make_move()
+   * when possible
    */
-  bool is_legal(const Move& move) const;
+  bool is_legal(const Move &move) const;
 
   Memento memento() const;
 

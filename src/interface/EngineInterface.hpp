@@ -13,7 +13,6 @@ class EngineIO;
 class EngineInterface {
 
 protected:
-
   BoardState boardstate = BoardState::initial();
 
   Evaluator evaluator;
@@ -23,6 +22,8 @@ protected:
   bool exit_required_ = false;
 
 public:
+  virtual ~EngineInterface();
+
   virtual void receive(const std::string &line) = 0;
 
   bool is_exit_required() const { return exit_required_; }

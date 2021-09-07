@@ -5,28 +5,25 @@
 
 namespace logging {
 
-	/**
-	 * Produces logs as udp datagrams containing log4j:event xml, can be viewed with
-	 * tools like 'logbert' (https://github.com/couchcoding/Logbert)
-	 */
-	class UdpAppender : public Appender {
+/**
+ * Produces logs as udp datagrams containing log4j:event xml, can be viewed with
+ * tools like 'logbert' (https://github.com/couchcoding/Logbert)
+ */
+class UdpAppender : public Appender {
 
-	private:
+private:
+  string host_;
 
-	  string host_;
+  int port_;
 
-	  int port_;
+public:
+  UdpAppender(const string &host = "localhost", int port = 9000);
 
-	public:
+  ~UdpAppender();
 
-	  UdpAppender(const string &host = "localhost", int port = 9000);
+  virtual bool append(const Logger &logger, const LogMessage &message) override;
+};
 
-	  ~UdpAppender();
-
-	  virtual bool append(const Logger &logger, const LogMessage &message) override;
-
-	};
-
-}
+} // namespace logging
 
 #endif

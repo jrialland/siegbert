@@ -1,25 +1,23 @@
-#include "game/BoardState.hpp"
 #include "evaluator/Scorer.hpp"
 #include "evaluator/TranspositionTable.hpp"
+#include "game/BoardState.hpp"
 
 namespace siegbert {
 
 class Negamax {
 private:
+  TranspositionTable tt;
 
-    TranspositionTable tt;
+  Scorer scorer;
 
-    Scorer scorer;
-    
-    BoardState * pBs;
+  BoardState *pBs;
 
 public:
+  void set_boardState(BoardState &boardState);
 
-    void set_boardState(BoardState &boardState);
+  int negamax(int depth, int alpha, int beta);
 
-    int negamax(int depth, int alpha, int beta);
-
-    void reset();
+  void reset();
 };
 
-}
+} // namespace siegbert

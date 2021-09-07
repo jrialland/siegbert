@@ -14,8 +14,8 @@ namespace logging {
 
 class LoggingConfig {
 public:
-	LoggingConfig& withUdp();
-  LoggingConfig& withRollingFiles();
+  LoggingConfig &withUdp();
+  LoggingConfig &withRollingFiles();
 };
 
 class Logging {
@@ -49,12 +49,13 @@ void appender(const string &name, Appender *appender);
 
 #ifndef NDEBUG
 
-LoggingConfig basicConfig(int argc, char **argv, const LogLevel &level = LogLevel::Info);
+LoggingConfig basicConfig(int argc, char **argv,
+                          const LogLevel &level = LogLevel::Info);
 
 #else
 
 LoggingConfig basicConfig(int argc, char **argv,
-                 const LogLevel &level = LogLevel::Debug);
+                          const LogLevel &level = LogLevel::Debug);
 #endif
 
 } // namespace logging

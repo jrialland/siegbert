@@ -304,7 +304,7 @@ void BoardState::recompute_z() {
     pp += 1;
   }
 
-  //castling rights
+  // castling rights
   uint64_t c = 0;
   if (white_castling.kingside) {
     c ^= zobrist_random64[768];
@@ -324,19 +324,18 @@ void BoardState::recompute_z() {
   // we consider the enpassant square only if a real capture could occur
   if (enpassant) {
     square_t epsquare = square_for_bboard(enpassant);
-    if(
-          (!white_to_move && (WHITE_PAWN_CAPTURES[OFFSET(epsquare)] & black.pawns))
-      ||  (white_to_move && (BLACK_PAWN_CAPTURES[OFFSET(epsquare)] & white.pawns))
-    ) {
-        e = zobrist_random64[772 + COL(epsquare)]; 
+    if ((!white_to_move &&
+         (WHITE_PAWN_CAPTURES[OFFSET(epsquare)] & black.pawns)) ||
+        (white_to_move &&
+         (BLACK_PAWN_CAPTURES[OFFSET(epsquare)] & white.pawns))) {
+      e = zobrist_random64[772 + COL(epsquare)];
     }
   }
-  
+
   // turn
   uint64_t t = white_to_move ? zobrist_random64[780] : 0;
 
   z = p ^ c ^ e ^ t;
-
 }
 
 void BoardState::evolve_z(const Move &move, const Castling &previous_castling,
@@ -416,11 +415,11 @@ void BoardState::evolve_z(const Move &move, const Castling &previous_castling,
   // we consider the enpassant square only if a real capture could occur
   if (enpassant) {
     square_t epsquare = square_for_bboard(enpassant);
-    if(
-          (!white_to_move && (WHITE_PAWN_CAPTURES[OFFSET(epsquare)] & black.pawns))
-      ||  (white_to_move && (BLACK_PAWN_CAPTURES[OFFSET(epsquare)] & white.pawns))
-    ) {
-        z ^= zobrist_random64[772 + COL(epsquare)]; 
+    if ((!white_to_move &&
+         (WHITE_PAWN_CAPTURES[OFFSET(epsquare)] & black.pawns)) ||
+        (white_to_move &&
+         (BLACK_PAWN_CAPTURES[OFFSET(epsquare)] & white.pawns))) {
+      z ^= zobrist_random64[772 + COL(epsquare)];
     }
   }
 

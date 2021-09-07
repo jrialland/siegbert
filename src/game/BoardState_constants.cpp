@@ -1,3 +1,4 @@
+// This is file is generated automatically, should not be edited manually
 
 #include "BoardState_constants.hpp"
 extern "C" {
@@ -6035,4 +6036,5 @@ const bboard_and_square_t ROOK_RAY_W[64][8] = {
      {0x100000000000000UL, 0x70},
      {0, 0x88}},
 };
-}
+
+} // end-of extern "C"

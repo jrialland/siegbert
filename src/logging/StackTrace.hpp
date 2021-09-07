@@ -6,12 +6,9 @@
 using namespace std;
 
 namespace logging {
-	
 
-vector<string> getStackTrace(int maxItems=256);
-	
-	
+vector<string> getStackTrace(int maxItems = 256);
+
 };
-
 
 #endif

@@ -1,3 +1,4 @@
+// This is file is generated automatically, should not be edited manually
 
 #ifndef BoardState_constants_HPP
 #define BoardState_constants_HPP
@@ -25,6 +26,7 @@ extern const bboard_and_square_t ROOK_RAY_N[64][8];
 extern const bboard_and_square_t ROOK_RAY_S[64][8];
 extern const bboard_and_square_t ROOK_RAY_E[64][8];
 extern const bboard_and_square_t ROOK_RAY_W[64][8];
-}
+
+} // end-of extern "C"
 
 #endif

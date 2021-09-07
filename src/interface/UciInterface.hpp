@@ -13,7 +13,6 @@ namespace siegbert {
 class UciInterface : public EngineInterface {
 
 private:
-
   EngineIO *io;
 
   BoardState boardState = BoardState::initial();
@@ -23,7 +22,6 @@ private:
   void set_option(const std::string &key, const std::string &value);
 
 public:
-
   UciInterface(EngineIO *io);
 
   void receive(const std::string &line) override;
