@@ -2,10 +2,12 @@ cmake_minimum_required(VERSION 3.10)
 
 project(Siegbert)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_ENABLE_EXPORTS TRUE)
 
 ## pthread ##
-find_package(Threads)
+find_package(Threads REQUIRED)
 
 ## Boost ##
 set(Boost_USE_STATIC_LIBS OFF) 
@@ -73,6 +75,7 @@ target_include_directories(unittests PRIVATE
 target_link_libraries(unittests ${CMAKE_DL_LIBS})
 target_link_libraries(unittests ${CMAKE_THREAD_LIBS_INIT} )
 target_link_libraries(unittests ${Boost_LIBRARIES})
+
 
 enable_testing()
 add_test(NAME UnitTests COMMAND ${PROJECT_BINARY_DIR}/unittests)
