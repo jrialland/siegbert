@@ -12,6 +12,7 @@ using namespace std;
 
 #include <unistd.h> // for isatty
 #include <cstdio> // for fileno, stdin
+#include <linux/limits.h>
 
 namespace logging {
 	
@@ -100,6 +101,16 @@ LoggingConfig basicConfig(int argc, char **argv, const LogLevel& level) {
 LoggingConfig& LoggingConfig::withUdp() {
 	appender("udp", new UdpAppender);
 	logger().addAppender("udp");
+	return *this;
+}
+
+LoggingConfig& LoggingConfig::withRollingFiles() {
+	char buff[PATH_MAX];
+	int count = readlink("/proc/self/exe", buff, PATH_MAX);
+	string exename(buff);
+	exename = exename.substr(0, count);
+	appender("rolling_files", new FileAppender(exename, ".log", true, 7));
+	logger().addAppender("rolling_files");
 	return *this;
 }
 

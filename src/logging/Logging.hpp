@@ -15,6 +15,7 @@ namespace logging {
 class LoggingConfig {
 public:
 	LoggingConfig& withUdp();
+  LoggingConfig& withRollingFiles();
 };
 
 class Logging {
