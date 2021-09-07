@@ -18,7 +18,9 @@ find_package(Boost REQUIRED COMPONENTS regex)
 file(GLOB_RECURSE SIEGBERT_EVALUATOR_SRC ${CMAKE_SOURCE_DIR}/src/evaluator/*.cpp)
 file(GLOB_RECURSE SIEGBERT_GAME_SRC ${CMAKE_SOURCE_DIR}/src/game/*.cpp)
 file(GLOB_RECURSE SIEGBERT_INTERFACE_SRC ${CMAKE_SOURCE_DIR}/src/interface/*.cpp)
-file(GLOB_RECURSE SIEGBERT_OPENINGBOOK_SRC ${CMAKE_SOURCE_DIR}/src/threading/*.cpp)
+file(GLOB_RECURSE SIEGBERT_LOGGING_SRC ${CMAKE_SOURCE_DIR}/src/logging/*.cpp)
+
+file(GLOB_RECURSE SIEGBERT_OPENINGBOOK_SRC ${CMAKE_SOURCE_DIR}/src/openingbook/*.cpp)
 file(GLOB_RECURSE SIEGBERT_PGN_SRC ${CMAKE_SOURCE_DIR}/src/pgn/*.cpp)
 file(GLOB_RECURSE SIEGBERT_THREADING_SRC ${CMAKE_SOURCE_DIR}/src/threading/*.cpp)
 
@@ -26,6 +28,7 @@ set(SIEGBERT_SRC
   ${SIEGBERT_EVALUATOR_SRC}
   ${SIEGBERT_GAME_SRC}
   ${SIEGBERT_INTERFACE_SRC}
+  ${SIEGBERT_LOGGING_SRC}
   ${SIEGBERT_OPENINGBOOK_SRC}
   ${SIEGBERT_PGN_SRC}
   ${SIEGBERT_THREADING_SRC}
@@ -46,6 +49,7 @@ target_include_directories(siegbert PRIVATE
     ${CMAKE_SOURCE_DIR}/src/
 )
 
+target_link_libraries(siegbert ${CMAKE_DL_LIBS})
 target_link_libraries(siegbert ${CMAKE_THREAD_LIBS_INIT} )
 target_link_libraries(siegbert ${Boost_LIBRARIES})
 
@@ -66,6 +70,7 @@ target_include_directories(unittests PRIVATE
     ${CMAKE_SOURCE_DIR}/src/
 )
 
+target_link_libraries(unittests ${CMAKE_DL_LIBS})
 target_link_libraries(unittests ${CMAKE_THREAD_LIBS_INIT} )
 target_link_libraries(unittests ${Boost_LIBRARIES})
 
