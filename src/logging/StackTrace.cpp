@@ -25,29 +25,16 @@ std::string demangle(const char* name) {
 	}
 }
 
-std::string get_executable_name() {
-	#if defined(PLATFORM_POSIX) || defined(__linux__) //check defines for your setup
-
-    string sp;
-    ifstream("/proc/self/comm") >> sp;
-	return sp;
-
-	#elif defined(_WIN32) 
-	
-	char buf[MAX_PATH];
-    GetModuleFileNameA(nullptr, buf, MAX_PATH);
-	return buf;
-
-	#else
-
-	return "";
-
-	#endif
+string get_executable_name() {
+	char buff[PATH_MAX];
+	int count = readlink("/proc/self/exe", buff, PATH_MAX);
+	string s(buff);
+	return s.substr(0, count);
 }
 
 string addr2line(void *addr) {
 	ostringstream ss;
-	ss << "addr2line -a " << addr << " -e ./" << get_executable_name();
+	ss << "addr2line -a " << addr << " -e " << get_executable_name();
 	std::array<char, 128> buffer;
 	unique_ptr<FILE, decltype(&pclose)> pipe(popen(ss.str().c_str(), "r"), pclose);
 
