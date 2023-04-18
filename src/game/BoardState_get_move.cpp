@@ -1,12 +1,9 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <regex>
 #include <vector>
 using namespace std;
-
-#include <boost/algorithm/string.hpp>
-#include <boost/regex.hpp>
-using namespace boost;
 
 #include "game/BoardState.hpp"
 

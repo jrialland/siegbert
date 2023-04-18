@@ -4,7 +4,7 @@
 #include <map>
 #include <sstream>
 
-#include <boost/algorithm/string.hpp>
+#include "utils/StringUtils.hpp"
 
 namespace logging {
 
@@ -19,7 +19,7 @@ DECL_LOGLEVELS()
 const LogLevel &LogLevel::forName(const string &lvlName) {
 
 #define DECL_LOGLEVEL(n, name)                                                 \
-  if (boost::iequals(lvlName, #name)) {                                        \
+  if (siegbert::StringUtils::iequals(lvlName, #name)) {                        \
     return LogLevel::name;                                                     \
   } else
   DECL_LOGLEVELS()

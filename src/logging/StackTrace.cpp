@@ -5,11 +5,21 @@
 #include <cxxabi.h>
 #include <dlfcn.h>
 
-#include <boost/algorithm/string.hpp>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <sstream>
+
+#include "utils/StringUtils.hpp"
+
+#ifdef __linux__
+#include <linux/limits.h>
+#else
+#ifndef MAX_PATH
+#define MAX_PATH 4096
+#endif
+#endif
+#include <unistd.h>
 
 std::string demangle(const char *name) {
   int status;
@@ -48,8 +58,8 @@ string addr2line(void *addr) {
   while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
     result += buffer.data();
   }
-  boost::trim(result);
-  boost::replace_all(result, "\n", " ");
+  result = siegbert::StringUtils::trim(result);
+  result = siegbert::StringUtils::replace_all(result, "\n", " ");
   return result;
 }
 

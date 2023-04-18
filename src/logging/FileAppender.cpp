@@ -4,8 +4,8 @@
 #include "StreamAppender.hpp"
 #include "Time.hpp"
 
-#include <boost/regex.hpp>
 #include <fstream>
+#include <regex>
 using namespace std;
 
 #include <dirent.h>
@@ -53,10 +53,11 @@ void FileAppender::cleanup() {
   string path = Fs::getDir(name_);
   string base = Fs::getBasename(name_);
 
-  string escaped = boost::regex_replace(
-      base + "_([0-9]{4})-([0-9]{2})-([0-9]{2})" + extension_,
-      boost::regex("\\."), "\\\\.");
-  boost::regex pattern(escaped);
+  string escaped =
+      regex_replace(base + "_([0-9]{4})-([0-9]{2})-([0-9]{2})" + extension_,
+                    regex("\\."), "\\\\.");
+
+  regex pattern(escaped);
 
   DIR *dir;
   struct dirent *ent;
@@ -68,9 +69,9 @@ void FileAppender::cleanup() {
 
         string filename(ent->d_name);
 
-        boost::cmatch what;
+        cmatch what;
 
-        if (boost::regex_match(filename.c_str(), what, pattern)) {
+        if (regex_match(filename.c_str(), what, pattern)) {
 
           int year = atoi(what[1].first);
           int month = atoi(what[2].first);

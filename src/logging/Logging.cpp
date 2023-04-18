@@ -6,13 +6,12 @@
 #include "UdpAppender.hpp"
 
 #include <exception>
+#include <regex>
 using namespace std;
 
-#include <boost/regex.hpp>
-
-#include <cstdio> // for fileno, stdin
-#include <linux/limits.h>
-#include <unistd.h> // for isatty
+#include <cstdio>         // for fileno, stdin
+#include <linux/limits.h> // PATH_MAX
+#include <unistd.h>       // for isatty
 
 namespace logging {
 
@@ -84,7 +83,7 @@ LoggingConfig basicConfig(int argc, char **argv, const LogLevel &level) {
     string logdir = Fs::getDir(argv[0]) + Fs::dirSep() + "log";
     Fs::mkdir(logdir);
     string prgName = Fs::getBasename(argv[0]);
-    prgName = boost::regex_replace(prgName, boost::regex("\\.(exe|EXE)$"), "");
+    prgName = std::regex_replace(prgName, std::regex("\\.(exe|EXE)$"), "");
     appender("logfile", new FileAppender(logdir + Fs::dirSep() + prgName));
     logger().level(level);
     logger().setAppender("logfile");

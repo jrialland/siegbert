@@ -1,7 +1,7 @@
 
 #include "interface/XBoardInterface.hpp"
 
-#include <boost/regex.hpp>
+#include <regex>
 
 namespace siegbert {
 
@@ -56,9 +56,9 @@ XBoardInterface::XBoardInterface(EngineIO *io) {
   handlers["black"] = [this] { boardstate.set_white_to_move(false); };
 }
 
-static const boost::regex re_move("^[a-h][1-8][a-h][1-8][nbrq]?$");
-static const boost::regex re_ping("^ping ([0-9a-z]+)$");
-static const boost::regex re_setboard("^setboard (.+)$");
+static const std::regex re_move("^[a-h][1-8][a-h][1-8][nbrq]?$");
+static const std::regex re_ping("^ping ([0-9a-z]+)$");
+static const std::regex re_setboard("^setboard (.+)$");
 
 void XBoardInterface::receive(const std::string &line) {
   auto it = handlers.find(line);
@@ -68,7 +68,7 @@ void XBoardInterface::receive(const std::string &line) {
     return;
   }
 
-  boost::cmatch m;
+  std::cmatch m;
 
   if (regex_match(line.c_str(), m, re_move)) {
     Memento memento = boardstate.memento();

@@ -1,10 +1,9 @@
-#include "interface/UciInterface.hpp"
 
-#include <boost/algorithm/string.hpp>
-#include <boost/regex.hpp>
-
+#include <regex>
 using namespace std;
-using namespace boost;
+
+#include "interface/UciInterface.hpp"
+#include "utils/StringUtils.hpp"
 
 namespace siegbert {
 
@@ -28,10 +27,10 @@ UciInterface::UciInterface(EngineIO *io_) : io(io_) {
   };
 }
 
-static const boost::regex re_setoption("^setoption name (.+) value (.+)");
-static const boost::regex re_register("^register (.+)$");
-static const boost::regex re_position("^position (.+)$");
-static const boost::regex re_go("^go( .*)$");
+static const std::regex re_setoption("^setoption name (.+) value (.+)");
+static const std::regex re_register("^register (.+)$");
+static const std::regex re_position("^position (.+)$");
+static const std::regex re_go("^go( .*)$");
 
 void UciInterface::receive(const string &line) {
 
@@ -41,10 +40,10 @@ void UciInterface::receive(const string &line) {
     return;
   }
 
-  boost::cmatch m;
+  std::cmatch m;
 
   // setoption xxx yyyy
-  if (boost::regex_match(line.c_str(), m, re_setoption)) {
+  if (std::regex_match(line.c_str(), m, re_setoption)) {
     string name;
     string value;
     name.assign(m[1].first, m[1].second);
@@ -54,12 +53,11 @@ void UciInterface::receive(const string &line) {
   }
 
   // position startpos|fen moves ...
-  if (boost::regex_match(line.c_str(), m, re_position)) {
+  if (std::regex_match(line.c_str(), m, re_position)) {
     string params;
     params.assign(m[1].first, m[1].second);
-    vector<string> parts;
+    vector<string> parts = StringUtils::split(params, ' ');
     vector<string> moves;
-    boost::split(parts, params, boost::is_space());
     string pos;
     int ni;
 
@@ -82,11 +80,10 @@ void UciInterface::receive(const string &line) {
     return;
   }
 
-  if (boost::regex_match(line.c_str(), m, re_go)) {
+  if (std::regex_match(line.c_str(), m, re_go)) {
     string params;
     params.assign(m[1].first, m[1].second);
-    vector<string> parts;
-    boost::split(parts, params, boost::is_space());
+    vector<string> parts = StringUtils::split(params, ' ');
     for (int i = 0; i < parts.size(); i += 1) {
       // TODO
     }

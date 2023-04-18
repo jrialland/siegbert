@@ -8,12 +8,9 @@
 #include <vector>
 using namespace std;
 
-#include <boost/algorithm/string.hpp>
-#include <boost/regex.hpp>
-using namespace boost;
-
 #include "game/BoardState.hpp"
 #include "game/BoardState_constants.hpp"
+#include "utils/StringUtils.hpp"
 
 namespace siegbert {
 
@@ -453,10 +450,10 @@ BoardState BoardState::initial() {
 ////////////////////////////////////////////////////////////////////////////////
 BoardState BoardState::from_fen(const string &fen) {
   BoardState self;
-  vector<string> items;
   State *current;
 
-  boost::split(items, fen, boost::is_space());
+  vector<string> items = StringUtils::split(fen, ' ');
+
   if (items.size() != 6) {
     throw invalid_argument("invalid fen");
   }
@@ -660,7 +657,6 @@ bool BoardState::make_move(const Move &move) {
     white = saved_white;
     black = saved_black;
     return false;
-
   } else {
 
     Castling previous_castling;
@@ -684,7 +680,6 @@ bool BoardState::make_move(const Move &move) {
       }
 
       white_to_move = false;
-
     } else {
       previous_castling = black_castling;
       black_castling = moveresult.castling_rights;

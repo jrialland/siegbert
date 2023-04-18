@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(Siegbert)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_ENABLE_EXPORTS TRUE)
 SET (CMAKE_CXX_FLAGS_DEBUG_INIT "-ggdb")
@@ -11,14 +11,9 @@ SET (CMAKE_CXX_FLAGS_RELEASE_INIT "-O3 -DNDEBUG")
 ## pthread ##
 find_package(Threads REQUIRED)
 
-## Boost ##
-set(Boost_USE_STATIC_LIBS OFF) 
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost REQUIRED COMPONENTS regex)
-
 ################################################################################
 
+file(GLOB_RECURSE SIEGBERT_UTILS_SRC ${CMAKE_SOURCE_DIR}/src/utils/*.cpp)
 file(GLOB_RECURSE SIEGBERT_EVALUATOR_SRC ${CMAKE_SOURCE_DIR}/src/evaluator/*.cpp)
 file(GLOB_RECURSE SIEGBERT_GAME_SRC ${CMAKE_SOURCE_DIR}/src/game/*.cpp)
 file(GLOB_RECURSE SIEGBERT_INTERFACE_SRC ${CMAKE_SOURCE_DIR}/src/interface/*.cpp)
@@ -29,6 +24,7 @@ file(GLOB_RECURSE SIEGBERT_PGN_SRC ${CMAKE_SOURCE_DIR}/src/pgn/*.cpp)
 file(GLOB_RECURSE SIEGBERT_THREADING_SRC ${CMAKE_SOURCE_DIR}/src/threading/*.cpp)
 
 set(SIEGBERT_SRC
+  ${SIEGBERT_UTILS_SRC}
   ${SIEGBERT_EVALUATOR_SRC}
   ${SIEGBERT_GAME_SRC}
   ${SIEGBERT_INTERFACE_SRC}
@@ -74,9 +70,7 @@ target_include_directories(unittests PRIVATE
     ${CMAKE_SOURCE_DIR}/src/
 )
 
-target_link_libraries(unittests ${CMAKE_DL_LIBS})
-target_link_libraries(unittests ${CMAKE_THREAD_LIBS_INIT} )
-target_link_libraries(unittests ${Boost_LIBRARIES})
+target_link_libraries(unittests ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 
 enable_testing()

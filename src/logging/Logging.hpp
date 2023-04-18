@@ -9,7 +9,6 @@
 #include <string>
 using namespace std;
 
-#include <boost/current_function.hpp>
 namespace logging {
 
 class LoggingConfig {
@@ -62,26 +61,26 @@ LoggingConfig basicConfig(int argc, char **argv,
 
 #define LOG_TRACE(...)                                                         \
   logging::logger().log(logging::LogLevel::Trace, __FILE__, __LINE__,          \
-                        BOOST_CURRENT_FUNCTION, __VA_ARGS__)
+                        __PRETTY_FUNCTION__, __VA_ARGS__)
 
 #define LOG_DEBUG(...)                                                         \
   logging::logger().log(logging::LogLevel::Debug, __FILE__, __LINE__,          \
-                        BOOST_CURRENT_FUNCTION, __VA_ARGS__)
+                        __PRETTY_FUNCTION__, __VA_ARGS__)
 
 #define LOG_INFO(...)                                                          \
   logging::logger().log(logging::LogLevel::Info, __FILE__, __LINE__,           \
-                        BOOST_CURRENT_FUNCTION, __VA_ARGS__)
+                        __PRETTY_FUNCTION__, __VA_ARGS__)
 
 #define LOG_WARN(...)                                                          \
   logging::logger().log(logging::LogLevel::Warn, __FILE__, __LINE__,           \
-                        BOOST_CURRENT_FUNCTION, __VA_ARGS__)
+                        __PRETTY_FUNCTION__, __VA_ARGS__)
 
 #define LOG_ERROR(...)                                                         \
   logging::logger().log(logging::LogLevel::Error, __FILE__, __LINE__,          \
-                        BOOST_CURRENT_FUNCTION, __VA_ARGS__)
+                        __PRETTY_FUNCTION__, __VA_ARGS__)
 
 #define LOG_FATAL(...)                                                         \
   logging::logger().log(logging::LogLevel::Fatal, __FILE__, __LINE__,          \
-                        BOOST_CURRENT_FUNCTION, __VA_ARGS__)
+                        __PRETTY_FUNCTION__, __VA_ARGS__)
 
 #endif

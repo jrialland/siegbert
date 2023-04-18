@@ -3,8 +3,8 @@
 #include "Time.hpp"
 
 #include <algorithm>
-#include <boost/regex.hpp>
 #include <cstdio>
+#include <regex>
 #include <time.h>
 
 namespace ansiseq {
@@ -102,7 +102,7 @@ bool StreamAppender::append(const Logger &logger, const LogMessage &message) {
   string repl = tty_ ? (nl + "\t" + ansiseq::gray + "|\t" + ansiseq::white)
                      : (nl + "\t|\t");
   string sanitizedmsg =
-      boost::regex_replace(message.message, boost::regex("\r?\n"), repl);
+      std::regex_replace(message.message, std::regex("\r?\n"), repl);
 
   if (tty_) {
     *(stream_) << ansiseq::white;
